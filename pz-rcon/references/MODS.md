@@ -9,21 +9,33 @@
 *What to add to your PZ dedicated server config (typically `servertest.ini`).*
 
 ### Workshop IDs
-Put these into `WorkshopItems=` (comma-separated):
+Put these into `WorkshopItems=` (comma-separated).
 
+**Baseline (your must-haves):**
 ```ini
 WorkshopItems=3543229299,2875848298,2544353492,3330403100,3485349033,3387110070
 ```
 
-### Mod IDs (load order matters)
-Put these into `Mods=` (semicolon-separated). **RV Interior must be first** (per the author):
+**Baseline + Director Toolkit (recommended):**
+```ini
+WorkshopItems=3543229299,2875848298,2544353492,3330403100,3485349033,3387110070,3590950467,2714850307,3607686447,3532685233
+```
 
+### Mod IDs (load order matters)
+Put these into `Mods=` (semicolon-separated). **RV Interior must be first** (per the author).
+
+**Baseline:**
 ```ini
 Mods=PROJECTRVInterior42;BB_CommonSense;P4HasBeenRead;KI5trailers;fol_Take_A_Bath_PortB42;TheyKnewB42
 ```
 
+**Baseline + Director Toolkit (recommended):**
+```ini
+Mods=PROJECTRVInterior42;BB_CommonSense;P4HasBeenRead;KI5trailers;fol_Take_A_Bath_PortB42;TheyKnewB42;Airdrops;HordeNight;ImmersiveBlackouts;phunsprinters
+```
+
 Notes:
-- If you also enable **Airdrops** (recommended for the Director): add `3590950467` to `WorkshopItems` and `Airdrops` to `Mods`.
+- **Horde Night:** I’m using `2714850307` / `HordeNight` based on our current notes (“Horde Night Fixed (B42)”). If you end up using a different B42 fork, swap in that fork’s Workshop ID + Mod ID.
 - If you later add frameworks (Tsar/KI5 libraries, etc.), keep their required load order rules.
 
 ## ✅ 0. Server Baseline (Must-Haves)
