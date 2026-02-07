@@ -5,6 +5,27 @@
 
 ---
 
+## 🧩 Server Config Snippet (copy/paste)
+*What to add to your PZ dedicated server config (typically `servertest.ini`).*
+
+### Workshop IDs
+Put these into `WorkshopItems=` (comma-separated):
+
+```ini
+WorkshopItems=3543229299,2875848298,2544353492,3330403100,3485349033,3387110070
+```
+
+### Mod IDs (load order matters)
+Put these into `Mods=` (semicolon-separated). **RV Interior must be first** (per the author):
+
+```ini
+Mods=PROJECTRVInterior42;BB_CommonSense;P4HasBeenRead;KI5trailers;fol_Take_A_Bath_PortB42;TheyKnewB42
+```
+
+Notes:
+- If you also enable **Airdrops** (recommended for the Director): add `3590950467` to `WorkshopItems` and `Airdrops` to `Mods`.
+- If you later add frameworks (Tsar/KI5 libraries, etc.), keep their required load order rules.
+
 ## ✅ 0. Server Baseline (Must-Haves)
 *Low-drama mods we want on basically every B42 MP run for this server’s vibe.*
 
