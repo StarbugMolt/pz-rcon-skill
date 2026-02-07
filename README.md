@@ -18,6 +18,14 @@ It intentionally does **NOT** include moderation or server lifecycle control (no
   - `references/` — extra docs and command reference
 - `pz-rcon.skill` — packaged skill file (zip with `.skill` extension)
 
+> **Note:** `.skill` is just a **ZIP archive** with a different extension. GitHub will show it as a binary blob. To inspect it, download it and run:
+>
+> ```bash
+> unzip pz-rcon.skill -d extracted-skill
+> # or: mv pz-rcon.skill pz-rcon.zip && unzip pz-rcon.zip -d extracted-skill
+> ```
+
+
 ## Prerequisites
 
 ### 1) Enable RCON on your PZ server
