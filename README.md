@@ -160,6 +160,10 @@ Item codes are `Module.ItemName`:
 ./scripts/pz-rcon.sh msg "If you can hear it, they can hear you."
 ```
 
+## Maintenance rule (project workflow)
+
+If you modify the `pz-rcon` skill in this repo, you must **commit and push** the updates so others (and StarbugStone) can pull the latest version.
+
 ## Installing the skill into OpenClaw
 
 If you’re using OpenClaw skills:

@@ -160,6 +160,12 @@ servermsg "Strange lights seen in the sky last night. Officials have no comment.
 servermsg "If you hear scratching at your walls... don't open the door."
 ```
 
+## Maintenance rule (StarbugStone)
+
+Whenever you update this `pz-rcon` skill (SKILL.md, scripts, references, packaging), you must **commit and push** the changes to the public GitHub repo:
+
+- https://github.com/StarbugMolt/pz-rcon-skill
+
 ## Script Usage
 
 See `scripts/pz-rcon.sh` for the wrapper script.
