@@ -2,6 +2,12 @@
 
 To maximize the "AI Director" experience with `pz-rcon`, we recommend the following Build 42 compatible mods.
 
+## 📦 Airdrops (Essential)
+*   **Airdrops** (Workshop ID: `3590950467`)
+    *   **Why**: The best B42 airdrop mod. Highly configurable (medical, weapons, animals).
+    *   **Director Potential**: Has "Explosive Cleanup" (airdrops explode if not claimed) and "Visual Effects" (smoke/flares). Perfect for high-stakes rewards.
+    *   **Config**: You can set it to spawn bandits or zombies near drops.
+
 ## 🚗 Vehicles (for Rewards)
 Use these with `addvehicle "Script" "Player"`.
 
@@ -14,8 +20,6 @@ Use these with `addvehicle "Script" "Player"`.
 *   **'67 Cadillac Gage Commando**: Perfect for "military support" drops.
 *   **'97 ADI Bushmaster**: High-tier reward for server events.
 *   **'86 Chevrolet CUCV**: Standard military utility.
-
-*Tip: To find exact vehicle script names, look in the mod's `media/scripts/vehicles` folder or check the Workshop page description.*
 
 ## 🎵 Atmosphere
 *   **True Music B42**: Essential.
