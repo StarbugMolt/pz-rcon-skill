@@ -5,6 +5,39 @@
 
 ---
 
+## ✅ 0. Server Baseline (Must-Haves)
+*Low-drama mods we want on basically every B42 MP run for this server’s vibe.*
+
+### **Common Sense** (Must-have QoL)
+*   **Workshop ID:** `2875848298`
+*   **Mod ID:** `BB_CommonSense`
+*   **Why:** Crowbar prying, better small interactions, lots of “why isn’t this vanilla?” fixes.
+
+### **Has Been Read** (Looting clarity)
+*   **Workshop ID:** `2544353492`
+*   **Mod ID:** `P4HasBeenRead`
+*   **Why:** Marks what you *still need to read* (still valuable even with B42’s vanilla-ish checkmarks).
+
+### **Trailers!** (Logistics / nomad play)
+*   **Workshop ID:** `3330403100`
+*   **Mod ID:** `KI5trailers`
+*   **Why:** Hauling + convoy gameplay. Pairs nicely with “RV Interior” + airdrops.
+
+### **[B42 Port] Take a Bath** (Immersion + sanity)
+*   **Workshop ID:** `3485349033`
+*   **Mod ID:** `fol_Take_A_Bath_PortB42`
+*   **Why:** Hygiene loop + small mood relief. Good RP glue.
+
+### **They Knew [B42]** (Optional-but-strong “story medicine”)
+*   **Workshop ID:** `3387110070`
+*   **Mod ID:** `TheyKnewB42`
+*   **Why:** Rare hazmat encounters + cure items = great Director reward hooks.
+
+### **[B42] Project RV Interior** (Test first)
+*   **Workshop ID:** `3543229299`
+*   **Mod ID:** `PROJECTRVInterior42`
+*   **Why:** Nomad fantasy. **Note:** must be **first in mod load order** (per author) and should be tested for MP stability.
+
 ## 🎭 1. The Core "Director" Toolkit (Events & Pacing)
 *These mods allow the server to feel alive and reactive.*
 
