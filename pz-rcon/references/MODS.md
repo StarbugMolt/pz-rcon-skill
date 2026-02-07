@@ -1,42 +1,110 @@
-# Recommended Mods for B42 Multiplayer
+# Curated Mod List: "The AI Director's Cut" (Build 42 MP)
 
-To maximize the "AI Director" experience with `pz-rcon`, we recommend the following Build 42 compatible mods.
+**Target:** Cinematic Roleplay, <10 Players, Immersive/Dynamic Events.
+**Philosophy:** Mods are chosen to give the "AI Director" (Game Master) levers to control pacing, tension, and rewards, rather than just adding "stuff."
 
-## 📦 Airdrops (Essential)
-*   **Airdrops** (Workshop ID: `3590950467`)
-    *   **Why**: The best B42 airdrop mod. Highly configurable (medical, weapons, animals).
-    *   **Director Potential**: Has "Explosive Cleanup" (airdrops explode if not claimed) and "Visual Effects" (smoke/flares). Perfect for high-stakes rewards.
-    *   **Config**: You can set it to spawn bandits or zombies near drops.
+---
 
-## 🚗 Vehicles (for Rewards)
-Use these with `addvehicle "Script" "Player"`.
+## 🎭 1. The Core "Director" Toolkit (Events & Pacing)
+*These mods allow the server to feel alive and reactive.*
 
-**Autotsar Tuning Atelier - B42 Versions**
-*   **Bus**: `Autotsar.Bus` (Verify exact script ID in mod files)
-*   **Jaap Wrungel**: `Autotsar.JaapWrungel`
-*   **Petyarbuilt 379**: `Autotsar.Peterbilt`
+### **Airdrops** (Essential)
+*   **Workshop ID:** `3590950467`
+*   **Mod ID:** `Airdrops`
+*   **Roleplay Value:** The ultimate narrative delivery system.
+    *   **Cinematic Feature:** "Explosive Cleanup" - Drops self-destruct if not claimed, forcing desperate extraction missions.
+    *   **Director Control:** Use RCON to spawn specific drops (medical, weapons) as narrative rewards. "Command has sent support to Sector 4..."
 
-**Military & Utility**
-*   **'67 Cadillac Gage Commando**: Perfect for "military support" drops.
-*   **'97 ADI Bushmaster**: High-tier reward for server events.
-*   **'86 Chevrolet CUCV**: Standard military utility.
+### **Horde Night Fixed (B42)**
+*   **Workshop ID:** `2714850307` (or B42 fork/update)
+*   **Mod ID:** `HordeNight`
+*   **Roleplay Value:** Scripted climaxes.
+    *   **Config:** Set to "Random" for unpredictability, or schedule them for "Season Finales."
+    *   **Cinematic:** Use RCON to warn players ("Seismic sensors active...") before the night begins.
 
-## 🎵 Atmosphere
-*   **True Music B42**: Essential.
-    *   **Reward Idea**: Airdrop a boombox and rare cassettes.
-    *   **Command**: `additem "Player" "TrueMusic.Cassette_Artist_Song"` (IDs depend on music packs).
+### **Immersive Blackouts [B42MP]**
+*   **Workshop ID:** `3607686447`
+*   **Mod ID:** `ImmersiveBlackouts`
+*   **Roleplay Value:** Instant atmosphere.
+    *   **Director Control:** Randomly cut power during a loot run to force flashlight usage and panic.
 
-## 🗺️ Maps (for Event Locations)
-Use these locations in your narrative broadcasts ("Horde reported in Grapeseed...").
-*   **Raven Creek B42**: High density, perfect for "suicide mission" rewards.
-*   **Grapeseed [B42 Unstable Remake]**
-*   **Camden County B42**
+### **PhunSprinters**
+*   **Workshop ID:** `3532685233`
+*   **Mod ID:** `phunsprinters`
+*   **Roleplay Value:** Pacing control.
+    *   **Config:** Set global sprinter speed low (1-5%), but ramp it up to 100% in specific "Dark Zones" (e.g., military bases) to create "dungeon" raids.
 
-## 🛠️ Admin Tools
-*   **Legion Zomboid Server/Admin Tools [B42]**
-    *   Adds commands like `/lootspawn` (respawn loot in current building).
-    *   Useful for "restocking" a dungeon/event location before players arrive.
+### **Bandits NPC [B42]**
+*   **Workshop ID:** `3268487204`
+*   **Mod ID:** `Bandits`
+*   **Roleplay Value:** Human antagonists.
+    *   **Usage:** They provide a threat that *shoots back*, changing combat from melee kiting to tactical cover shooting.
 
-## ⚠️ Notes
-*   **Expanded Helicopter Events**: Currently in production for B42 (as of late 2025). Until released, use the built-in `chopper` command.
-*   **Horde Night**: You don't need a mod! Use the included `scripts/horde_night.sh` to trigger dynamic horde nights via RCON.
+---
+
+## 🎵 2. Atmosphere & Immersion (Cinematic Feel)
+*Mods that make the world feel lived-in and emotional.*
+
+### **True Music (B42)**
+*   **Workshop ID:** *(Search "True Music" + B42 filter)*
+*   **Mod ID:** `truemusic`
+*   **Roleplay Value:** Diegetic music.
+    *   **Idea:** Airdrop a boombox and specific cassettes (e.g., "The End" by The Doors) to set the mood for a final stand.
+
+### **Unseasonal Weather**
+*   **Workshop ID:** `3582891045`
+*   **Mod ID:** `UnseasonalWeather`
+*   **Roleplay Value:** Visual storytelling.
+    *   **Effect:** Sudden fog banks or storms that reduce visibility to zero, perfect for horror sequences.
+
+### **I Don't Need A Lighter**
+*   **Workshop ID:** `2714198296`
+*   **Mod ID:** `IDontNeedALighter`
+*   **Roleplay Value:** Small immersion fix. Use stoves/campfires to light cigarettes.
+
+---
+
+## 🚗 3. Vehicles (The Rewards)
+*High-quality assets for "Hero Vehicles". Don't flood the server; make these rare finds.*
+
+### **KI5 Vehicle Collection**
+*   **Workshop IDs:** Various (Pick 3-5 specific ones to keep load times down)
+    *   **'82 Jeep J10:** The rugged survivor truck.
+    *   **'97 ADI Bushmaster:** The ultimate armored reward for a server-wide event.
+    *   **'93 Ford Mustang SSP:** Fast police interceptor for highway chases.
+*   **Mod ID:** *Depends on vehicle*
+*   **Roleplay Value:** Fully animated parts (hoods, doors) make them feel real.
+
+### **Autotsar Trailers [B42]**
+*   **Workshop ID:** *(Check Collection)*
+*   **Mod ID:** `AutotsarTrailers`
+*   **Roleplay Value:** Logistics. Generator trailers and fuel tankers allow for mobile bases/convoys.
+
+---
+
+## 🛠️ 4. Server Frameworks (Required)
+*The glue that holds the mods together.*
+
+*   **[B42] Mod Manager:** Essential for server admin to manage load orders.
+*   **Tsar's Common Library B42:** Required for vehicles.
+*   **PhunLib:** Required for Sprinters.
+*   **B42 NeatUI Framework:** Required for UI mods.
+
+---
+
+## ❌ 5. Mods to AVOID (for Cinematic RP)
+*   **Combat Text / Health Bars:** *Breaks immersion.* We want players checking their bodies for bites, not reading HP bars.
+*   **Brita's Weapon Pack:** *Too OP.* Cinematic zombies aren't scary if everyone has a minigun. Stick to Vanilla Firearms Expanded or just Vanilla B42 (which is much improved).
+*   **Minimap Mods:** *Debatable.* Removing the minimap forces players to use in-game maps and navigation skills, boosting immersion.
+
+---
+
+## 🎬 Director's Playbook: "The Siege"
+*Example of how to combine these mods.*
+
+1.  **Setup:** Admin places a **'97 Bushmaster** (KI5) at the center of the Mall.
+2.  **Phase 1 (Tension):** RCON broadcast: "Signal detected at Crossroads Mall. High-value asset confirmed."
+3.  **Phase 2 (The Journey):** Trigger **Unseasonal Weather** to create heavy fog. Players must navigate blindly.
+4.  **Phase 3 (The Trap):** When they enter the Mall, trigger **Immersive Blackouts** (lights out).
+5.  **Phase 4 (The Climax):** Trigger **Horde Night** (50 zombies) + spawn 1-2 **Bandits** as "rival survivors" fighting for the truck.
+6.  **Resolution:** Players escape in the armored truck. Admin triggers **Airdrop** with fuel/ammo at their exit route.
