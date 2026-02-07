@@ -169,6 +169,11 @@ Whenever you update this `pz-rcon` skill (SKILL.md, scripts, references, packagi
 ## Script Usage
 
 See `scripts/pz-rcon.sh` for the wrapper script.
+See `scripts/horde_night.sh` for triggering a server-wide zombie wave on all players.
+
+## Recommended Mods (B42)
+
+See `references/MODS.md` for a curated list of mods (Vehicles, Maps, Music) that work well with this skill.
 
 ## Full Command Details
 
