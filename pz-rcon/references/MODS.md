@@ -20,6 +20,7 @@
 *   **Mod ID:** `HordeNight`
 *   **Roleplay Value:** Scripted climaxes.
     *   **Config:** Set to "Random" for unpredictability, or schedule them for "Season Finales."
+    *   **Tuning:** For 1-2 players, set horde size to **20-30 zombies**. Focus on *atmosphere* (lightning/noise) rather than overwhelming numbers.
     *   **Cinematic:** Use RCON to warn players ("Seismic sensors active...") before the night begins.
 
 ### **Immersive Blackouts [B42MP]**
@@ -33,12 +34,6 @@
 *   **Mod ID:** `phunsprinters`
 *   **Roleplay Value:** Pacing control.
     *   **Config:** Set global sprinter speed low (1-5%), but ramp it up to 100% in specific "Dark Zones" (e.g., military bases) to create "dungeon" raids.
-
-### **Bandits NPC [B42]**
-*   **Workshop ID:** `3268487204`
-*   **Mod ID:** `Bandits`
-*   **Roleplay Value:** Human antagonists.
-    *   **Usage:** They provide a threat that *shoots back*, changing combat from melee kiting to tactical cover shooting.
 
 ---
 
@@ -96,6 +91,7 @@
 *   **Combat Text / Health Bars:** *Breaks immersion.* We want players checking their bodies for bites, not reading HP bars.
 *   **Brita's Weapon Pack:** *Too OP.* Cinematic zombies aren't scary if everyone has a minigun. Stick to Vanilla Firearms Expanded or just Vanilla B42 (which is much improved).
 *   **Minimap Mods:** *Debatable.* Removing the minimap forces players to use in-game maps and navigation skills, boosting immersion.
+*   **Bandits NPC:** *Unstable in MP.* Great concept, but currently causes desync/crashes in B42 multiplayer. Wait for stability updates.
 
 ---
 
@@ -106,5 +102,5 @@
 2.  **Phase 1 (Tension):** RCON broadcast: "Signal detected at Crossroads Mall. High-value asset confirmed."
 3.  **Phase 2 (The Journey):** Trigger **Unseasonal Weather** to create heavy fog. Players must navigate blindly.
 4.  **Phase 3 (The Trap):** When they enter the Mall, trigger **Immersive Blackouts** (lights out).
-5.  **Phase 4 (The Climax):** Trigger **Horde Night** (50 zombies) + spawn 1-2 **Bandits** as "rival survivors" fighting for the truck.
+5.  **Phase 4 (The Climax):** Trigger **Horde Night** (20-30 zombies) to swarm the entrances.
 6.  **Resolution:** Players escape in the armored truck. Admin triggers **Airdrop** with fuel/ammo at their exit route.
