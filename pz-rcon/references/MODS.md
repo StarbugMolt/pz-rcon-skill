@@ -8,6 +8,8 @@
 ## 🧩 Server Config Snippet (copy/paste)
 *What to add to your PZ dedicated server config (typically `servertest.ini`).*
 
+> We keep the **core** list small for stability. Everything else below is **optional** and is *not* included in the core snippet unless you explicitly add it.
+
 ### Workshop IDs
 Put these into `WorkshopItems=` (comma-separated).
 
@@ -42,7 +44,22 @@ Add these only if you explicitly want the mechanic:
 - **PhunSprinters** — Workshop `3532685233`, Mod `phunsprinters`
 - **Horde Night Fixed (B42)** — Workshop `2714850307` (or your chosen fork), Mod `HordeNight`
 
+**Optional Worldbuilding / Vehicles / Journals (NOT in core mod list)**
+
+Journals:
+- **Burd's Survival Journals (B42.13+)** — Workshop `3639628777`, Mod `BurdSurvivalJournals`
+
+Vehicles:
+- **'87 Ford B700/F700 Trucks (KI5)** — Workshop `3110911330`, Mod `87fordB700`
+- **Autotsar Tuning Atelier - Petyarbuilt 379 [B42]** *(test first)* — Workshop `3403314193`, Mod `ATA_Petyarbuilt`
+- **[B42] Skizot's USPS Truck** — Workshop `2941567785`, Mod `USPSTruck`
+
+Maps / POIs (these often require `Maps=` entries too):
+- **Mel Bunker [B42]** — Workshop `3641801982`, Mod `MelBunker`, Map folder `MelBunker`
+- **SHELTER Echo Creek B42** — Workshop `3450258411`, Mod `shelter-EC42`, Map folder `SHELTER Echo Creek B42`
+
 Notes:
+- If you add **map mods**, you may need to update `Maps=` / load order as well (depends on the mod). Always follow the Workshop page instructions.
 - If you later add frameworks (Tsar/KI5 libraries, etc.), keep their required load order rules.
 
 ## ✅ 0. Server Baseline (Must-Haves)
