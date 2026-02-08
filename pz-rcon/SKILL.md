@@ -51,7 +51,7 @@ additem "Player1" Base.WaterBottleFull 5
 additem "Player1" Base.FirstAidKit 2
 ```
 
-Common items: `Base.Axe`, `Base.Pistol`, `Base.Shotgun`, `Base.Crowbar`, `Base.Hammer`, `Base.WaterBottleFull`, `Base.CannedBeans`, `Base.FirstAidKit`, `Base.Bandage`, `Base.9mmClip`
+Common items (note: item IDs can differ between builds/mods; if you get “Item X doesn’t exist”, try another item or consult the server’s item list): `Base.Axe`, `Base.Pistol`, `Base.Shotgun`, `Base.Crowbar`, `Base.Hammer`, `Base.WaterBottleFull`, `Base.Bread`, `Base.FirstAidKit`, `Base.Bandage`, `Base.9mmClip`
 
 Full list: https://pzwiki.net/wiki/Items
 
@@ -63,12 +63,15 @@ addxp "username" <Perk>=<amount>
 
 Examples:
 ```
-addxp "Player1" Carpentry=100
+addxp "Player1" Woodwork=100
 addxp "Player1" Aiming=50
 addxp "Player1" Fitness=200
+addxp "Player1" PlantScavenging=100
 ```
 
-Perks: Fitness, Strength, Sprinting, Axe, Blunt, SmallBlade, LongBlade, Aiming, Reloading, Carpentry, Cooking, Farming, Doctor, Electricity, Mechanics, Tailoring, Fishing, Trapping, Foraging
+**B42 note:** Perk names changed/expanded (e.g. `Foraging` → `PlantScavenging`, `Carpentry` → `Woodwork`). If you’re unsure, run `addxp` with a bogus value and the server will often print the available perk list.
+
+Common perks (B42-ish): Aiming, Reloading, Axe, Blunt, LongBlade, SmallBlade, Spear, Maintenance, Woodwork, Cooking, Doctor, Electricity, Mechanics, Tailoring, MetalWelding, Fitness, Strength, Sprinting, Sneak, Lightfoot, Nimble, PlantScavenging, Tracking, Trapping, Fishing, Farming
 
 ### Spawning Vehicles
 
