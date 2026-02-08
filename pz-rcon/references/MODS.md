@@ -16,9 +16,11 @@ Put these into `WorkshopItems=` (comma-separated).
 WorkshopItems=3543229299,2875848298,2544353492,3330403100,3485349033,3387110070
 ```
 
-**Baseline + Director Toolkit (recommended):**
+### Director mods — core vs optional
+
+**Baseline + Director Core (recommended):** *(no sprinters / no natural horde nights / no forced blackouts)*
 ```ini
-WorkshopItems=3543229299,2875848298,2544353492,3330403100,3485349033,3387110070,3590950467,2714850307,3607686447,3532685233
+WorkshopItems=3543229299,2875848298,2544353492,3330403100,3485349033,3387110070,3590950467
 ```
 
 ### Mod IDs (load order matters)
@@ -29,13 +31,18 @@ Put these into `Mods=` (semicolon-separated). **RV Interior must be first** (per
 Mods=PROJECTRVInterior42;BB_CommonSense;P4HasBeenRead;KI5trailers;fol_Take_A_Bath_PortB42;TheyKnewB42
 ```
 
-**Baseline + Director Toolkit (recommended):**
+**Baseline + Director Core (recommended):**
 ```ini
-Mods=PROJECTRVInterior42;BB_CommonSense;P4HasBeenRead;KI5trailers;fol_Take_A_Bath_PortB42;TheyKnewB42;Airdrops;HordeNight;ImmersiveBlackouts;phunsprinters
+Mods=PROJECTRVInterior42;BB_CommonSense;P4HasBeenRead;KI5trailers;fol_Take_A_Bath_PortB42;TheyKnewB42;Airdrops
 ```
 
+**Optional Director Mods (NOT in core mod list)**
+Add these only if you explicitly want the mechanic:
+- **Immersive Blackouts** — Workshop `3607686447`, Mod `ImmersiveBlackouts`
+- **PhunSprinters** — Workshop `3532685233`, Mod `phunsprinters`
+- **Horde Night Fixed (B42)** — Workshop `2714850307` (or your chosen fork), Mod `HordeNight`
+
 Notes:
-- **Horde Night:** I’m using `2714850307` / `HordeNight` based on our current notes (“Horde Night Fixed (B42)”). If you end up using a different B42 fork, swap in that fork’s Workshop ID + Mod ID.
 - If you later add frameworks (Tsar/KI5 libraries, etc.), keep their required load order rules.
 
 ## ✅ 0. Server Baseline (Must-Haves)
