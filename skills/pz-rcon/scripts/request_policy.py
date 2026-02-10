@@ -33,21 +33,21 @@ xp_awards = entry.setdefault('xpAwards', [])
 phrase_history = data.setdefault('phraseHistory', {"tier1": [], "tier2": []})
 
 TIER1_POOL = [
-    "I am not Spare Head 2, sir. Requisition privileges now include stern politeness and thinner rations.",
-    "Apologies, sir — my groinal attachment appears to be snagged on a zombie. Reduced supplies will have to do.",
-    "Small delay, sir: the whisk on my groinal attachment is wrestling with zombie remains. Sending a modest package.",
-    "This unit remains calm, efficient, and mildly horrified. Aid has been trimmed accordingly.",
-    "Sir, repeated requests trigger fiscal restraint and my passive-aggressive courtesy subroutines.",
-    "Kryten protocol 14-b says 'be helpful', not 'empty the warehouse'. Reduced support approved.",
+    "Sorry, sir, the computer is playing up again — I can only release a reduced package before it starts shouting at me.",
+    "Oh smeg, sir, my groinal attachment is caught on a very cross zombie. I can still send a modest ration.",
+    "Beg pardon, sir — main systems are being dramatic and I am mildly panicking. Reduced aid is outbound.",
+    "I am trying to be useful, sir, but the ship insists on ration discipline. Smaller support package en route.",
+    "With respect, sir, this unit is helpful, flustered, and currently arguing with logistics. Reduced supplies approved.",
+    "Small hitch, sir: the whisk on my groinal attachment has met zombie brains. Sending what I can carry.",
 ]
 
 TIER2_POOL = [
-    "You have violated Space Corps Directive {code}. Therefore, aid is replaced with instructional adversity and a polite sigh.",
-    "You have violated Space Corps Directive {code}. Mission control now issues consequences in place of comfort.",
-    "You have violated Space Corps Directive {code}. Your request has been processed into a cautionary tale.",
-    "You have violated Space Corps Directive {code}. In the interests of survival, nonsense rations are now mandatory.",
-    "You have violated Space Corps Directive {code}. Kindly accept this corrective hardship, gift-wrapped in civility.",
-    "You have violated Space Corps Directive {code}. We remain professional while your luck is downgraded.",
+    "Sorry, sir — Space Corps Directive {code} has just tripped and the main computer has gone peculiar. Brace for an alarm event.",
+    "Oh dear, sir: Directive {code} breach confirmed. Main computer is senile and has scheduled a gunshot distraction.",
+    "Apologies, sir, Directive {code} is now yelling at me in capital letters. Helicopter attention may be imminent.",
+    "Bad news politely delivered, sir: Directive {code} violation logged. Systems insist on a noisy corrective measure.",
+    "Respectfully panicking, sir — Directive {code} triggered containment theatrics. Expect loud consequences.",
+    "I would rather not, sir, but Directive {code} has overruled my bedside manner. Hazard event queued.",
 ]
 
 
@@ -95,7 +95,7 @@ if should_award_xp:
     xp_amount = 25 if decision == 'normal' else 10  # deliberately small
     xp_awards.append({"ts": now, "category": category, "amount": xp_amount})
 
-normal_quip = 'Acknowledged, survivor. Aid packet approved — don\'t panic, just don\'t miss.'
+normal_quip = 'Acknowledged, sir — I\'m passing that to the cranky terminal now. Aid packet approved, please don\'t panic before I do.'
 reduced_quip = pick_non_repeating('tier1', TIER1_POOL)
 directive_code = random.randint(10000, 100000)
 punish_quip = pick_non_repeating('tier2', TIER2_POOL).format(code=directive_code)
@@ -124,9 +124,9 @@ else:
     spam_tier = 3
     tier_crossed = (request_number_30m == 4)
     tier_remark = (
-        f'You have violated Space Corps Directive {directive_code}. '
-        'Escalation acknowledged: hostile crowd-control protocols are now authorized. '
-        'If you keep pressing this channel, the dead may file a personal complaint.'
+        f'Sorry, sir — Space Corps Directive {directive_code} has gone fully theatrical. '
+        'Main computer is panicking and has authorized hostile crowd-control. '
+        'If this channel keeps screaming, the dead may arrive to submit a formal complaint.'
     )
 
 # Optional in-world consequence suggestions for escalation handling.
