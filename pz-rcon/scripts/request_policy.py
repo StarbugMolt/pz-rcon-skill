@@ -62,6 +62,14 @@ quip = {
     'punish': 'Request noted and denied in spirit. Enjoy your premium disappointment ration.'
 }[decision]
 
+# After a major anti-spam punishment, reset rolling request pressure for this player.
+# Keep only the punishment marker so next request starts fresh (normal path).
+reset_applied = False
+if decision == 'punish':
+    reqs = []
+    entry['requests'] = reqs
+    reset_applied = True
+
 reqs.append({"ts": now, "category": category, "decision": decision})
 data['updatedAt'] = now
 
@@ -75,5 +83,6 @@ print(json.dumps({
     "recentSameCategory30m": count,
     "quip": quip,
     "awardSmallXp": should_award_xp,
-    "xpAmount": xp_amount
+    "xpAmount": xp_amount,
+    "resetApplied": reset_applied
 }))
