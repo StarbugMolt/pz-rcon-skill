@@ -139,13 +139,20 @@ elif count == 1:
 else:
     decision = 'punish'
 
-# Rare, small XP assistance (only for skill-gated categories)
+# XP is a situational bonus only.
+# Priority is always item-based aid; XP should be rare, small, and tied to relevant skill categories.
 skill_categories = {'mechanics', 'carpentry', 'aiming'}
-xp_recent = len([x for x in xp_awards if int(x.get('ts', 0)) >= now - 7200])
-should_award_xp = category in skill_categories and decision != 'punish' and xp_recent == 0
+xp_recent_24h = len([x for x in xp_awards if int(x.get('ts', 0)) >= now - 86400])
+base_xp_chance = 0.10 if decision == 'normal' else 0.03  # deliberately rare
+should_award_xp = (
+    category in skill_categories
+    and decision in {'normal', 'reduced'}
+    and xp_recent_24h == 0
+    and random.random() < base_xp_chance
+)
 xp_amount = 0
 if should_award_xp:
-    xp_amount = 25 if decision == 'normal' else 10  # deliberately small
+    xp_amount = 10 if decision == 'normal' else 5  # tiny, never progression-breaking
     xp_awards.append({"ts": now, "category": category, "amount": xp_amount})
 
 normal_quip = pick_non_repeating('normal', NORMAL_POOL)
