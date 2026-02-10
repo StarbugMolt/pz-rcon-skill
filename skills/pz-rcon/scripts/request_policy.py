@@ -34,10 +34,10 @@ phrase_history = data.setdefault('phraseHistory', {"tier1": [], "tier2": []})
 
 TIER1_POOL = [
     "I am not Spare Head 2, sir. Requisition privileges now include stern politeness and thinner rations.",
-    "With the greatest respect, this is not the groinal-attachment hotline. Supplies reduced.",
-    "This unit remains calm, efficient, and mildly disappointed. Aid has been trimmed accordingly.",
+    "Apologies, sir — my groinal attachment appears to be snagged on a zombie. Reduced supplies will have to do.",
+    "Small delay, sir: the whisk on my groinal attachment is wrestling with zombie remains. Sending a modest package.",
+    "This unit remains calm, efficient, and mildly horrified. Aid has been trimmed accordingly.",
     "Sir, repeated requests trigger fiscal restraint and my passive-aggressive courtesy subroutines.",
-    "You may call it persistence; logistics calls it overuse. Reduced package inbound.",
     "Kryten protocol 14-b says 'be helpful', not 'empty the warehouse'. Reduced support approved.",
 ]
 
@@ -121,6 +121,14 @@ else:
     tier_crossed = (request_number_30m == 3)
     tier_remark = punish_quip
 
+# Optional in-world consequence suggestions for escalation handling.
+# On first punish crossing, suggest a stronger warning event.
+recommended_event = None
+if decision == 'punish' and tier_crossed:
+    recommended_event = random.choice(['alarm', 'gunshot', 'chopper'])
+elif decision == 'punish':
+    recommended_event = random.choice(['gunshot', 'thunder'])
+
 # Keep rolling pressure; do not reset on punish.
 reset_applied = False
 reqs.append({"ts": now, "category": category, "decision": decision})
@@ -138,6 +146,7 @@ print(json.dumps({
     "spamTier": spam_tier,
     "tierCrossed": tier_crossed,
     "tierRemark": tier_remark,
+    "recommendedEvent": recommended_event,
     "quip": quip,
     "awardSmallXp": should_award_xp,
     "xpAmount": xp_amount,
