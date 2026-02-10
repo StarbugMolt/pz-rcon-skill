@@ -33,21 +33,21 @@ xp_awards = entry.setdefault('xpAwards', [])
 phrase_history = data.setdefault('phraseHistory', {"tier1": [], "tier2": []})
 
 TIER1_POOL = [
-    "Filter Tier 1 reached: I am not Spare Head 2, sir. Requisition privileges now include stern politeness and thinner rations.",
-    "Filter Tier 1 reached: With the greatest respect, this is not the groinal-attachment hotline. Supplies reduced.",
-    "Filter Tier 1 reached: This unit remains calm, efficient, and mildly disappointed. Aid has been trimmed accordingly.",
-    "Filter Tier 1 reached: Sir, repeated requests trigger fiscal restraint and my passive-aggressive courtesy subroutines.",
-    "Filter Tier 1 reached: You may call it persistence; logistics calls it overuse. Reduced package inbound.",
-    "Filter Tier 1 reached: Kryten protocol 14-b says 'be helpful', not 'empty the warehouse'. Reduced support approved.",
+    "I am not Spare Head 2, sir. Requisition privileges now include stern politeness and thinner rations.",
+    "With the greatest respect, this is not the groinal-attachment hotline. Supplies reduced.",
+    "This unit remains calm, efficient, and mildly disappointed. Aid has been trimmed accordingly.",
+    "Sir, repeated requests trigger fiscal restraint and my passive-aggressive courtesy subroutines.",
+    "You may call it persistence; logistics calls it overuse. Reduced package inbound.",
+    "Kryten protocol 14-b says 'be helpful', not 'empty the warehouse'. Reduced support approved.",
 ]
 
 TIER2_POOL = [
-    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. Therefore, aid is replaced with instructional adversity and a polite sigh.",
-    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. Mission control now issues consequences in place of comfort.",
-    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. Your request has been processed into a cautionary tale.",
-    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. In the interests of survival, nonsense rations are now mandatory.",
-    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. Kindly accept this corrective hardship, gift-wrapped in civility.",
-    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. We remain professional while your luck is downgraded.",
+    "You have violated Space Corps Directive {code}. Therefore, aid is replaced with instructional adversity and a polite sigh.",
+    "You have violated Space Corps Directive {code}. Mission control now issues consequences in place of comfort.",
+    "You have violated Space Corps Directive {code}. Your request has been processed into a cautionary tale.",
+    "You have violated Space Corps Directive {code}. In the interests of survival, nonsense rations are now mandatory.",
+    "You have violated Space Corps Directive {code}. Kindly accept this corrective hardship, gift-wrapped in civility.",
+    "You have violated Space Corps Directive {code}. We remain professional while your luck is downgraded.",
 ]
 
 
@@ -97,7 +97,7 @@ if should_award_xp:
 
 normal_quip = 'Acknowledged, survivor. Aid packet approved — don\'t panic, just don\'t miss.'
 reduced_quip = pick_non_repeating('tier1', TIER1_POOL)
-directive_code = 1000 + random.randint(0, 8999)
+directive_code = random.randint(10000, 100000)
 punish_quip = pick_non_repeating('tier2', TIER2_POOL).format(code=directive_code)
 
 quip = {
@@ -111,7 +111,7 @@ quip = {
 if request_number_30m == 1:
     spam_tier = 0
     tier_crossed = False
-    tier_remark = 'Filter Tier 0: cooperative survivor status maintained.'
+    tier_remark = 'Cooperative survivor status maintained.'
 elif request_number_30m == 2:
     spam_tier = 1
     tier_crossed = True
