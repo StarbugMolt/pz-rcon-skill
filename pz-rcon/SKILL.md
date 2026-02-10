@@ -217,9 +217,30 @@ Whenever you update this `pz-rcon` skill (SKILL.md, scripts, references, packagi
 See `scripts/pz-rcon.sh` for the wrapper script.
 See `scripts/horde_night.sh` for triggering a server-wide zombie wave on all players.
 
-## Recommended Mods (B42)
+## Reference Catalogs
 
-See `references/MODS.md` for a curated list of mods (Vehicles, Maps, Music) that work well with this skill.
+- Vanilla item lookup: `references/items-full.md`
+- Vanilla vehicle lookup: `references/vehicles-full.md`
+- Command syntax: `references/commands.md`
+- Mod list ideas: `references/MODS.md`
+
+### Mod item file convention
+
+Store mod-specific item catalogs in one file per mod using:
+
+- `references/mod-<modname>-items.md`
+
+Example: `references/mod-ki5-items.md`
+
+Use `references/mod-template-items.md` as the template.
+
+### Enabled mod source of truth
+
+Read enabled mods from `.env` key:
+
+- `PZ_ENABLED_MODS` (comma-separated mod IDs)
+
+Only use a mod item file when the corresponding mod appears in `PZ_ENABLED_MODS`.
 
 ## Full Command Details
 

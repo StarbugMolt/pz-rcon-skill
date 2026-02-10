@@ -9,6 +9,17 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Auto-load local skill env if present (unless vars already set by caller)
+if [ -f "$SKILL_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$SKILL_DIR/.env"
+    set +a
+fi
+
 HOST="${PZ_RCON_HOST:-localhost}"
 PORT="${PZ_RCON_PORT:-16262}"
 PASSWORD="${PZ_RCON_PASSWORD:-}"
@@ -71,7 +82,7 @@ case "${1:-help}" in
     vehicle|spawn-vehicle)
         shift
         if [ -z "$2" ]; then echo "Usage: $0 vehicle <type> <username>"; exit 1; fi
-        rcon_cmd addvehicle "\"$1\"" "\"$2\""
+        rcon_cmd "addvehicle \"$1\" \"$2\""
         ;;
 
     # Events
@@ -126,7 +137,11 @@ case "${1:-help}" in
         ;;
     storm)
         shift
-        rcon_cmd startstorm "${1:-}"
+        if [ -n "$1" ]; then
+            rcon_cmd "startstorm $1"
+        else
+            rcon_cmd startstorm
+        fi
         ;;
     weather-stop|clear)
         rcon_cmd stopweather
