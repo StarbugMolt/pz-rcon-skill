@@ -62,7 +62,7 @@ if should_award_xp:
 quip = {
     'normal': 'Acknowledged, survivor. Aid packet approved — don\'t panic, just don\'t miss.',
     'reduced': 'You\'re back on this frequency again? Fine. Reduced ration; consider it a character-building experience.',
-    'punish': 'Request logged, sanity questioned. Today\'s delivery is one (1) deluxe disappointment, with Kryten-grade politeness.'
+    'punish': 'Request acknowledged, sir. Regrettably, your entitlement package now contains one (1) politely wrapped catastrophe and a complimentary safety lecture.'
 }[decision]
 
 # Flavor text when crossing spam-filter tiers.
@@ -78,7 +78,12 @@ elif request_number_30m == 2:
 else:
     spam_tier = 2
     tier_crossed = (request_number_30m == 3)
-    tier_remark = 'Filter Tier 2 engaged: you have officially annoyed mission control. Consequences are now narrative.'
+    directive_code = 1000 + ((now + len(player) + len(category)) % 9000)
+    tier_remark = (
+        f'Filter Tier 2 engaged: you have violated Space Corps Directive {directive_code}. '
+        'By order of shipboard protocol, aid is now restricted to corrective nonsense and educational suffering. '
+        'Please remain calm while we pretend this is entirely under control.'
+    )
 
 # Keep rolling pressure; do not reset on punish.
 reset_applied = False
