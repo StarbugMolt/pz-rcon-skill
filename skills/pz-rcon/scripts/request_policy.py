@@ -140,7 +140,7 @@ else:
     decision = 'punish'
 
 # Rare, small XP assistance (only for skill-gated categories)
-skill_categories = {'mechanics', 'medical', 'carpentry', 'aiming'}
+skill_categories = {'mechanics', 'carpentry', 'aiming'}
 xp_recent = len([x for x in xp_awards if int(x.get('ts', 0)) >= now - 7200])
 should_award_xp = category in skill_categories and decision != 'punish' and xp_recent == 0
 xp_amount = 0

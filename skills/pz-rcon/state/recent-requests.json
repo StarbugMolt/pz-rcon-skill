@@ -25,18 +25,21 @@
       ]
     }
   },
-  "updatedAt": 1770738340,
+  "updatedAt": 1770738538,
   "notes": "Runtime memory for recent asks and reward throttling.",
   "phraseHistory": {
     "tier1": [
-      0
+      0,
+      1
     ],
     "tier2": [
-      0
+      0,
+      5
     ],
     "normal": [
       1,
-      0
+      0,
+      5
     ]
   }
 }
