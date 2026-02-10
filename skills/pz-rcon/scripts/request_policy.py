@@ -34,21 +34,21 @@ xp_awards = entry.setdefault('xpAwards', [])
 phrase_history = data.setdefault('phraseHistory', {"tier1": [], "tier2": []})
 
 TIER1_POOL = [
-    "Sorry, sir, the computer is playing up again — I can only release a reduced package before it starts shouting at me.",
-    "Oh smeg, sir, my groinal attachment is caught on a very cross zombie. I can still send a modest ration.",
-    "Beg pardon, sir — main systems are being dramatic and I am mildly panicking. Reduced aid is outbound.",
-    "I am trying to be useful, sir, but the ship insists on ration discipline. Smaller support package en route.",
-    "With respect, sir, this unit is helpful, flustered, and currently arguing with logistics. Reduced supplies approved.",
-    "Small hitch, sir: the whisk on my groinal attachment has met zombie brains. Sending what I can carry.",
+    "Sorry, {term}, the computer is playing up again — I can only release a reduced package before it starts shouting at me.",
+    "Oh smeg, {term}, my groinal attachment is caught on a very cross zombie. I can still send a modest ration.",
+    "Beg pardon, {term} — main systems are being dramatic and I am mildly panicking. Reduced aid is outbound.",
+    "I am trying to be useful, {term}, but the ship insists on ration discipline. Smaller support package en route.",
+    "With respect, {term}, this unit is helpful, flustered, and currently arguing with logistics. Reduced supplies approved.",
+    "Small hitch, {term}: the whisk on my groinal attachment has met zombie brains. Sending what I can carry.",
 ]
 
 TIER2_POOL = [
-    "Sorry, sir — Space Corps Directive {code} has just tripped and the main computer has gone peculiar. Brace for {event_label}.",
-    "Oh dear, sir: Directive {code} breach confirmed. Main computer is senile and has scheduled {event_label}.",
-    "Apologies, sir, Directive {code} is now yelling at me in capital letters. {event_label_cap} may be imminent.",
-    "Bad news politely delivered, sir: Directive {code} violation logged. Systems insist on {event_label}.",
-    "Respectfully panicking, sir — Directive {code} triggered containment theatrics. Expect {event_label}.",
-    "I would rather not, sir, but Directive {code} has overruled my bedside manner. {event_label_cap} queued.",
+    "Sorry, {term} — Space Corps Directive {code} has just tripped and the main computer has gone peculiar. Brace for {event_label}.",
+    "Oh dear, {term}: Directive {code} breach confirmed. Main computer is senile and has scheduled {event_label}.",
+    "Apologies, {term}, Directive {code} is now yelling at me in capital letters. {event_label_cap} may be imminent.",
+    "Bad news politely delivered, {term}: Directive {code} violation logged. Systems insist on {event_label}.",
+    "Respectfully panicking, {term} — Directive {code} triggered containment theatrics. Expect {event_label}.",
+    "I would rather not, {term}, but Directive {code} has overruled my bedside manner. {event_label_cap} queued.",
 ]
 
 
@@ -103,10 +103,13 @@ else:
 
 if honorific == 'maam':
     salutation = f"Ma'am {player}"
+    term = "ma'am"
 elif honorific == 'miss':
     salutation = f"Miss {player}"
+    term = "miss"
 else:
     salutation = f"Mister {player}, sir"
+    term = "sir"
 
 # Keep recent windows bounded
 reqs = [r for r in reqs if int(r.get('ts', 0)) >= now - 7200]          # 2h request memory
@@ -137,7 +140,7 @@ if should_award_xp:
     xp_awards.append({"ts": now, "category": category, "amount": xp_amount})
 
 normal_quip = 'Acknowledged — I\'m passing that to the cranky terminal now. Aid packet approved, please don\'t panic before I do.'
-reduced_quip = pick_non_repeating('tier1', TIER1_POOL)
+reduced_quip = pick_non_repeating('tier1', TIER1_POOL).format(term=term)
 directive_code = random.randint(10000, 100000)
 
 # Event suggestion is part of escalation flavor; compute before punish line rendering.
@@ -158,6 +161,7 @@ event_label = event_label_map.get(recommended_event, 'an unpleasant surprise')
 event_label_cap = event_label[:1].upper() + event_label[1:]
 
 punish_quip = pick_non_repeating('tier2', TIER2_POOL).format(
+    term=term,
     code=directive_code,
     event_label=event_label,
     event_label_cap=event_label_cap,
@@ -187,7 +191,7 @@ else:
     spam_tier = 3
     tier_crossed = (request_number_30m == 4)
     tier_remark = (
-        f'Sorry, sir — Space Corps Directive {directive_code} has gone fully theatrical. '
+        f'Sorry, {term} — Space Corps Directive {directive_code} has gone fully theatrical. '
         'Main computer is panicking and has authorized hostile crowd-control. '
         'If this channel keeps screaming, the dead may arrive to submit a formal complaint.'
     )
