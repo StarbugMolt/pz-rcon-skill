@@ -65,6 +65,7 @@ Track at least player, category, timestamp, and grant result.
 - ask #3+ → `punish`
 
 Use sarcastic but non-abusive in-universe tone for punish outcomes.
+When a player crosses into a higher spam tier, include a creative/snarky tier-crossing remark (implemented via `request_policy.py` fields like `tierCrossed` + `tierRemark`).
 
 ### 3) XP must stay small and rare
 - XP is occasional, never routine.
