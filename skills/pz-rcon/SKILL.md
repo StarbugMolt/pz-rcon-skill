@@ -78,8 +78,9 @@ For Tier 2 crossing, apply a harsher in-world warning beat (e.g., `alarm`, `guns
 If the player keeps pushing beyond Tier 2, escalate to Tier 3 and allow horde-level consequence via `recommendedEvent: horde`.
 
 ### 3) XP must stay small and rare
-- XP is occasional, never routine.
-- Prefer tiny boosts and long spacing.
+- **Items/resources are primary** response to help requests.
+- XP is a situational bonus only, not a default reward path.
+- Keep XP tiny, infrequent, and only for relevant skill categories.
 - Default to `request_policy.py` output (`awardSmallXp`, `xpAmount`).
 
 ### 4) Theme responses to demand
