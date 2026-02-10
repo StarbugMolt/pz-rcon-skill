@@ -59,9 +59,9 @@ if should_award_xp:
     xp_awards.append({"ts": now, "category": category, "amount": xp_amount})
 
 quip = {
-    'normal': 'Copy that, survivor. Limited aid approved.',
-    'reduced': 'Again? Supplies are thinning, so this one is deliberately modest.',
-    'punish': 'Request noted and denied in spirit. Enjoy your premium disappointment ration.'
+    'normal': 'Acknowledged, survivor. Aid packet approved — don\'t panic, just don\'t miss.',
+    'reduced': 'You\'re back on this frequency again? Fine. Reduced ration; consider it a character-building experience.',
+    'punish': 'Request logged, sanity questioned. Today\'s delivery is one (1) deluxe disappointment, with Kryten-grade politeness.'
 }[decision]
 
 # Keep rolling pressure; do not reset on punish.
