@@ -205,3 +205,20 @@ Skill lookup policy:
 
 - Local secrets/runtime config: `pz-rcon/.env` (not committed)
 - Shareable template: `pz-rcon/.env.example`
+
+## Dual Runtime Modes (Game Master Flow)
+
+The skill now separates live-ops behavior into two tracks:
+
+1. **Ambient Director Loop**
+   - Script: `pz-rcon/scripts/ambient_tick.sh`
+   - Intended cadence: every 5 minutes
+   - Behavior: if players are online, emit themed atmosphere messages; trigger events rarely with cooldowns.
+
+2. **Help/Request Handler**
+   - Policy helper: `pz-rcon/scripts/request_policy.py`
+   - Behavior: answer direct player asks, apply anti-spam ladder (`normal` → `reduced` → `punish`) and keep balance.
+
+State files:
+- `pz-rcon/state/narrative-state.json`
+- `pz-rcon/state/recent-requests.json`

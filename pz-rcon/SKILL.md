@@ -165,7 +165,9 @@ servermsg "If you hear scratching at your walls... don't open the door."
 When operating in `#pz-molt` / in-game relay mode, enforce these gameplay rules:
 
 ### 1) Track recent asks before acting
-- Keep lightweight state in a local file (e.g. `skills/pz-rcon/state/recent-requests.json`).
+- Keep lightweight state in local files:
+  - `skills/pz-rcon/state/recent-requests.json` (help/request history)
+  - `skills/pz-rcon/state/narrative-state.json` (ambient loop cadence/event cooldown)
 - Track at least:
   - player name
   - request type (food/medical/weapon/xp/vehicle/event)
@@ -193,12 +195,21 @@ When operating in `#pz-molt` / in-game relay mode, enforce these gameplay rules:
 - Danger asks → emergency broadcast/survival warning tone.
 - Rewards and narration should feel diegetic (in-universe).
 
-### 5) Judge whether to reply/act on global chat
-- Not every message needs action.
-- Classify inbound relay messages:
-  - **Act now:** urgent distress, time-sensitive events, direct actionable requests.
-  - **Reply only:** flavor chatter or non-urgent requests.
-  - **Ignore/observe:** noise, duplicates, or non-actionable banter.
+### 5) Split logic: Ambient Director vs Help Requests
+- Treat these as **separate systems**:
+
+#### A) Ambient Director loop (global atmosphere)
+- Runs on a 5-minute tick (see `scripts/ambient_tick.sh`).
+- If players are online, keep the world flowing with themed narrative.
+- Events are rarer than messages and must honor cooldowns.
+- This loop should continue as long as players are online.
+
+#### B) Help/Request handler (player asks)
+- Triggered by relay messages requesting help/supplies/rewards.
+- Respond directly to demand with thematic flavor.
+- Apply anti-spam and punishment ladder for repeat beg/spam behavior.
+- Use `scripts/request_policy.py` for baseline decisioning (`normal`, `reduced`, `punish`).
+
 - Prioritize server balance over pleasing every request.
 
 ### 6) Anti-abuse defaults
@@ -216,6 +227,8 @@ Whenever you update this `pz-rcon` skill (SKILL.md, scripts, references, packagi
 
 See `scripts/pz-rcon.sh` for the wrapper script.
 See `scripts/horde_night.sh` for triggering a server-wide zombie wave on all players.
+See `scripts/ambient_tick.sh` for the 5-minute ambient narrative loop.
+See `scripts/request_policy.py` for help-request anti-spam decisioning.
 
 ## Reference Catalogs
 
