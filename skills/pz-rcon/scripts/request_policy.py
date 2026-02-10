@@ -39,6 +39,7 @@ entry['xpAwards'] = xp_awards
 
 same_cat_30m = [r for r in reqs if r.get('category') == category and int(r.get('ts', 0)) >= now - 1800]
 count = len(same_cat_30m)
+request_number_30m = count + 1
 
 # Escalation ladder for repeated same-category asks in 30m window:
 # #1 -> normal, #2 -> reduced, #3+ -> punish
@@ -64,6 +65,21 @@ quip = {
     'punish': 'Request logged, sanity questioned. Today\'s delivery is one (1) deluxe disappointment, with Kryten-grade politeness.'
 }[decision]
 
+# Flavor text when crossing spam-filter tiers.
+# Tier 0: normal, Tier 1: reduced, Tier 2: punish.
+if request_number_30m == 1:
+    spam_tier = 0
+    tier_crossed = False
+    tier_remark = 'Filter Tier 0: cooperative survivor status maintained.'
+elif request_number_30m == 2:
+    spam_tier = 1
+    tier_crossed = True
+    tier_remark = 'Filter Tier 1 reached: persistence noted. Supplies now arrive with budget cuts and light sarcasm.'
+else:
+    spam_tier = 2
+    tier_crossed = (request_number_30m == 3)
+    tier_remark = 'Filter Tier 2 engaged: you have officially annoyed mission control. Consequences are now narrative.'
+
 # Keep rolling pressure; do not reset on punish.
 reset_applied = False
 reqs.append({"ts": now, "category": category, "decision": decision})
@@ -77,6 +93,10 @@ print(json.dumps({
     "category": category,
     "decision": decision,
     "recentSameCategory30m": count,
+    "requestNumber30m": request_number_30m,
+    "spamTier": spam_tier,
+    "tierCrossed": tier_crossed,
+    "tierRemark": tier_remark,
     "quip": quip,
     "awardSmallXp": should_award_xp,
     "xpAmount": xp_amount,
