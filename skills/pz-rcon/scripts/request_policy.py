@@ -31,7 +31,16 @@ players = data.setdefault('players', {})
 entry = players.setdefault(player, {"requests": [], "xpAwards": []})
 reqs = entry.setdefault('requests', [])
 xp_awards = entry.setdefault('xpAwards', [])
-phrase_history = data.setdefault('phraseHistory', {"tier1": [], "tier2": []})
+phrase_history = data.setdefault('phraseHistory', {"normal": [], "tier1": [], "tier2": []})
+
+NORMAL_POOL = [
+    "Acknowledged — routing your request through the shipboard relay now. Aid packet approved; kindly panic in an orderly fashion.",
+    "Copy that — passing this to the main console before it has another existential wobble. Support is on the way.",
+    "Understood — relaying to operations while the nav computer argues with itself. Approved.",
+    "Received — sending this through command net. I remain calm, which is suspicious, but your aid is approved.",
+    "Right away — forwarding to the local terminal cluster. Package approved; do try to keep your limbs attached.",
+    "Confirmed — transmitting to the nearest functioning console. Help approved; chaos pending.",
+]
 
 TIER1_POOL = [
     "Sorry, {term}, the computer is playing up again — I can only release a reduced package before it starts shouting at me.",
@@ -139,7 +148,7 @@ if should_award_xp:
     xp_amount = 25 if decision == 'normal' else 10  # deliberately small
     xp_awards.append({"ts": now, "category": category, "amount": xp_amount})
 
-normal_quip = 'Acknowledged — I\'m passing that to the cranky terminal now. Aid packet approved, please don\'t panic before I do.'
+normal_quip = pick_non_repeating('normal', NORMAL_POOL)
 reduced_quip = pick_non_repeating('tier1', TIER1_POOL).format(term=term)
 directive_code = random.randint(10000, 100000)
 
