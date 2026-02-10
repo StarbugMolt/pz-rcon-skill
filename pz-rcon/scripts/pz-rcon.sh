@@ -37,7 +37,17 @@ case "${1:-help}" in
     msg|broadcast|say)
         shift
         if [ -z "$1" ]; then echo "Usage: $0 msg <message>"; exit 1; fi
-        rcon_cmd servermsg "\"$*\""
+        # PZ RCON can choke on non-ASCII / oversized payloads in some builds.
+        # Keep broadcasts single-line, printable ASCII, and bounded in length.
+        CLEAN_MSG=$(printf "%s" "$*" | LC_ALL=C tr -cd '\11\12\15\40-\176')
+        CLEAN_MSG=${CLEAN_MSG//$'\n'/ }
+        CLEAN_MSG=${CLEAN_MSG//$'\r'/ }
+        CLEAN_MSG=${CLEAN_MSG:0:180}
+        if [ -z "$CLEAN_MSG" ]; then
+            echo "Error: message is empty after sanitization (ASCII-only)."
+            exit 1
+        fi
+        rcon_cmd "servermsg \"$CLEAN_MSG\""
         ;;
 
     # Items

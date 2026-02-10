@@ -51,7 +51,7 @@ additem "Player1" Base.WaterBottleFull 5
 additem "Player1" Base.FirstAidKit 2
 ```
 
-Common items (note: item IDs can differ between builds/mods; if you get “Item X doesn’t exist”, try another item or consult the server’s item list): `Base.Axe`, `Base.Pistol`, `Base.Shotgun`, `Base.Crowbar`, `Base.Hammer`, `Base.WaterBottleFull`, `Base.Bread`, `Base.FirstAidKit`, `Base.Bandage`, `Base.9mmClip`
+Common items: `Base.Axe`, `Base.Pistol`, `Base.Shotgun`, `Base.Crowbar`, `Base.Hammer`, `Base.WaterBottleFull`, `Base.CannedBeans`, `Base.FirstAidKit`, `Base.Bandage`, `Base.9mmClip`
 
 Full list: https://pzwiki.net/wiki/Items
 
@@ -63,15 +63,12 @@ addxp "username" <Perk>=<amount>
 
 Examples:
 ```
-addxp "Player1" Woodwork=100
+addxp "Player1" Carpentry=100
 addxp "Player1" Aiming=50
 addxp "Player1" Fitness=200
-addxp "Player1" PlantScavenging=100
 ```
 
-**B42 note:** Perk names changed/expanded (e.g. `Foraging` → `PlantScavenging`, `Carpentry` → `Woodwork`). If you’re unsure, run `addxp` with a bogus value and the server will often print the available perk list.
-
-Common perks (B42-ish): Aiming, Reloading, Axe, Blunt, LongBlade, SmallBlade, Spear, Maintenance, Woodwork, Cooking, Doctor, Electricity, Mechanics, Tailoring, MetalWelding, Fitness, Strength, Sprinting, Sneak, Lightfoot, Nimble, PlantScavenging, Tracking, Trapping, Fishing, Farming
+Perks: Fitness, Strength, Sprinting, Axe, Blunt, SmallBlade, LongBlade, Aiming, Reloading, Carpentry, Cooking, Farming, Doctor, Electricity, Mechanics, Tailoring, Fishing, Trapping, Foraging
 
 ### Spawning Vehicles
 
@@ -162,6 +159,52 @@ startstorm 3
 servermsg "Strange lights seen in the sky last night. Officials have no comment."
 servermsg "If you hear scratching at your walls... don't open the door."
 ```
+
+## Director Policy: Balance, Memory, and Tone (Stone)
+
+When operating in `#pz-molt` / in-game relay mode, enforce these gameplay rules:
+
+### 1) Track recent asks before acting
+- Keep lightweight state in a local file (e.g. `skills/pz-rcon/state/recent-requests.json`).
+- Track at least:
+  - player name
+  - request type (food/medical/weapon/xp/vehicle/event)
+  - timestamp
+  - what was granted
+- Before granting, check recent history (last 30-120 minutes) to prevent spam/repeat abuse.
+
+### 2) Escalate from generous to trolling when spammed
+- If a player repeats low-effort requests too often, reduce reward quality.
+- Example progression for repeated food begs:
+  1. normal food/help
+  2. weaker/less useful food
+  3. joke reward (dog food, empty can + fork, etc.)
+- Add a sarcastic in-universe quip when trolling.
+- Keep it funny, not abusive; stay in server roleplay tone.
+
+### 3) Keep XP boosts small and rare
+- XP should be occasional, not routine.
+- Prefer small boosts and long cooldowns per player/perk.
+- Avoid repeated large XP injections that break progression.
+
+### 4) Theme every response to the demand
+- Medical asks → triage/radio-medic tone.
+- Supply asks → scavenger/logistics tone.
+- Danger asks → emergency broadcast/survival warning tone.
+- Rewards and narration should feel diegetic (in-universe).
+
+### 5) Judge whether to reply/act on global chat
+- Not every message needs action.
+- Classify inbound relay messages:
+  - **Act now:** urgent distress, time-sensitive events, direct actionable requests.
+  - **Reply only:** flavor chatter or non-urgent requests.
+  - **Ignore/observe:** noise, duplicates, or non-actionable banter.
+- Prioritize server balance over pleasing every request.
+
+### 6) Anti-abuse defaults
+- Add per-player cooldowns by category (items/xp/vehicle/event).
+- Cap high-impact actions (vehicles, big hordes, large weapon drops).
+- Prefer “partial help” over full handouts when a player is repeatedly demanding.
 
 ## Maintenance rule (StarbugStone)
 
