@@ -67,6 +67,7 @@ Track at least player, category, timestamp, and grant result.
 Use sarcastic but non-abusive in-universe tone for punish outcomes.
 When a player crosses into a higher spam tier, include a creative/snarky tier-crossing remark (implemented via `request_policy.py` fields like `tierCrossed` + `tierRemark`).
 Tier 1 and Tier 2 quip lines must be non-repeating until their configured phrase pools are exhausted (then cycle resets).
+For Tier 2 crossing, apply a harsher in-world warning beat when appropriate (e.g., `alarm`, `gunshot`, or `chopper`) via policy hint `recommendedEvent`.
 
 ### 3) XP must stay small and rare
 - XP is occasional, never routine.
