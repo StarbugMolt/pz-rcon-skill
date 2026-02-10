@@ -188,6 +188,8 @@ When operating in `#pz-molt` / in-game relay mode, enforce these gameplay rules:
 - XP should be occasional, not routine.
 - Prefer small boosts and long cooldowns per player/perk.
 - Avoid repeated large XP injections that break progression.
+- If help requires a skill gate (e.g., mechanics), you may pair aid with a **tiny** XP nudge instead of large handouts.
+- Use `scripts/request_policy.py` output (`awardSmallXp`, `xpAmount`) as the default policy.
 
 ### 4) Theme every response to the demand
 - Medical asks → triage/radio-medic tone.

@@ -62,12 +62,12 @@ if [ "$DO_EVENT" -eq 1 ]; then
   LAST_EVENT=$NOW
 else
   case $((RANDOM%6)) in
-    0) $DIR/pz-rcon.sh msg "Emergency broadcast: if you can hear this, you are still in the game. For now." ;;
+    0) $DIR/pz-rcon.sh msg "Emergency band update: movement is light for now. Use the lull wisely." ;;
     1) $DIR/pz-rcon.sh msg "Radio static clears: keep your lights low and your exits planned." ;;
     2) $DIR/pz-rcon.sh msg "Survivor tip: overconfidence is a short walk to becoming lunch." ;;
     3) $DIR/pz-rcon.sh msg "The wind carries no comfort today. Travel in caution, not in hope." ;;
     4) $DIR/pz-rcon.sh msg "Operations note: roads are safer than forests, until they are not." ;;
-    5) $DIR/pz-rcon.sh msg "Another calm minute in Knox County. Suspiciously calm." ;;
+    5) $DIR/pz-rcon.sh msg "Quiet skies over Knox County. Enjoy it before reality remembers you." ;;
   esac
 fi
 

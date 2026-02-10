@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple anti-spam policy helper for player help requests.
+Anti-spam + balance policy helper for player help requests.
 Usage:
   request_policy.py <player> <category>
 Outputs JSON decision for caller script/agent.
@@ -27,13 +27,15 @@ else:
     data = {"players": {}, "updatedAt": None}
 
 players = data.setdefault('players', {})
-entry = players.setdefault(player, {"requests": []})
+entry = players.setdefault(player, {"requests": [], "xpAwards": []})
 reqs = entry.setdefault('requests', [])
+xp_awards = entry.setdefault('xpAwards', [])
 
-# Keep last 2 hours only
-window = now - 7200
-reqs = [r for r in reqs if int(r.get('ts', 0)) >= window]
+# Keep recent windows bounded
+reqs = [r for r in reqs if int(r.get('ts', 0)) >= now - 7200]          # 2h request memory
+xp_awards = [x for x in xp_awards if int(x.get('ts', 0)) >= now - 86400]  # 24h xp memory
 entry['requests'] = reqs
+entry['xpAwards'] = xp_awards
 
 same_cat_30m = [r for r in reqs if r.get('category') == category and int(r.get('ts', 0)) >= now - 1800]
 count = len(same_cat_30m)
@@ -45,10 +47,19 @@ elif count == 2:
 else:
     decision = 'punish'
 
+# Rare, small XP assistance (only for skill-gated categories)
+skill_categories = {'mechanics', 'medical', 'carpentry', 'aiming'}
+xp_recent = len([x for x in xp_awards if int(x.get('ts', 0)) >= now - 7200])
+should_award_xp = category in skill_categories and decision != 'punish' and xp_recent == 0
+xp_amount = 0
+if should_award_xp:
+    xp_amount = 25 if decision == 'normal' else 10  # deliberately small
+    xp_awards.append({"ts": now, "category": category, "amount": xp_amount})
+
 quip = {
-    'normal': 'Copy that, survivor. Logistics are feeling generous today.',
-    'reduced': 'Again? Supplies are not infinite, unlike your optimism.',
-    'punish': 'Request denied in spirit. Enjoy your premium disappointment ration.'
+    'normal': 'Copy that, survivor. Limited aid approved.',
+    'reduced': 'Again? Supplies are thinning, so this one is deliberately modest.',
+    'punish': 'Request noted and denied in spirit. Enjoy your premium disappointment ration.'
 }[decision]
 
 reqs.append({"ts": now, "category": category, "decision": decision})
@@ -62,5 +73,7 @@ print(json.dumps({
     "category": category,
     "decision": decision,
     "recentSameCategory30m": count,
-    "quip": quip
+    "quip": quip,
+    "awardSmallXp": should_award_xp,
+    "xpAmount": xp_amount
 }))
