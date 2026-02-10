@@ -5,222 +5,79 @@ description: Enhance Project Zomboid server atmosphere via RCON. Use for broadca
 
 # Project Zomboid RCON - Atmosphere & Events
 
-Make your Project Zomboid server feel alive with narrative broadcasts, rewards, and dynamic events.
+This skill is for **live atmosphere + event directing** (not full admin lifecycle/moderation).
 
-## Prerequisites
+## Purpose
 
-Install `rcon-cli` (gorcon):
-```bash
-# Download from https://github.com/gorcon/rcon-cli/releases
-```
+Use RCON to:
+- broadcast in-universe narrative (`servermsg`)
+- grant controlled aid (items / tiny XP / occasional vehicles)
+- trigger dynamic world beats (horde/chopper/gunshot/lightning/thunder)
+- shape weather pacing
 
-## Connection
+## Runtime entrypoints
 
-```bash
-rcon -a <host>:<port> -p <password> <command>
-```
+- Wrapper: `scripts/pz-rcon.sh`
+- Ambient loop: `scripts/ambient_tick.sh` (5-minute tick)
+- Request anti-spam policy: `scripts/request_policy.py`
 
-Default RCON port = game port + 1 (e.g., 16261 → 16262).
+> Canonical command syntax: `references/commands.md`
 
-## Commands
+## Director policy (authoritative)
 
-### Broadcasting Messages
+### 1) Track recent asks before granting
+Persist and consult:
+- `state/recent-requests.json`
+- `state/narrative-state.json`
 
-Send atmospheric messages to all players:
-```
-servermsg "The emergency broadcast system crackles... Stay indoors tonight."
-```
+Track at least player, category, timestamp, and grant result.
 
-**Narrative ideas:**
-- Weather warnings before triggering storms
-- "Distant gunfire echoes from the west..."
-- Radio broadcasts about supply drops
-- Creepy night-time announcements
+### 2) Anti-spam escalation ladder (same category, 30m window)
+- ask #1 → `normal`
+- ask #2 → `reduced`
+- ask #3+ → `punish`
 
-### Giving Items
+Use sarcastic but non-abusive in-universe tone for punish outcomes.
 
-```
-additem "username" <Module.Item> <count>
-```
+### 3) XP must stay small and rare
+- XP is occasional, never routine.
+- Prefer tiny boosts and long spacing.
+- Default to `request_policy.py` output (`awardSmallXp`, `xpAmount`).
 
-Examples:
-```
-additem "Player1" Base.Axe 1
-additem "Player1" Base.Shotgun 1
-additem "Player1" Base.WaterBottleFull 5
-additem "Player1" Base.FirstAidKit 2
-```
+### 4) Theme responses to demand
+- medical → triage/radio medic tone
+- supplies → logistics/scavenger tone
+- danger/events → emergency broadcast tone
 
-Common items: `Base.Axe`, `Base.Pistol`, `Base.Shotgun`, `Base.Crowbar`, `Base.Hammer`, `Base.WaterBottleFull`, `Base.CannedBeans`, `Base.FirstAidKit`, `Base.Bandage`, `Base.9mmClip`
+### 5) Keep systems split
+- **Ambient Director** (`ambient_tick.sh`): atmosphere while players are online; events are rarer and cooldown-gated.
+- **Help Request Handler** (`request_policy.py` + operator/agent action): direct responses to player asks with anti-spam enforcement.
 
-Full list: https://pzwiki.net/wiki/Items
+### 6) Balance defaults
+- per-player cooldowns by category
+- strict caps on high-impact actions (vehicles, large hordes, heavy weapon drops)
+- prefer partial help over full handouts for repeat demanders
 
-### Giving XP
+## Lookup scope (authoritative)
 
-```
-addxp "username" <Perk>=<amount>
-```
+Use these catalogs as spawn/give lookup source:
+1. Vanilla:
+   - `references/catalogs/vanilla/items-full.md`
+   - `references/catalogs/vanilla/vehicles-full.md`
+2. Enabled mods only:
+   - `references/catalogs/mods/mod-<modname>-items.md`
+   - enabled set from `.env` key `PZ_ENABLED_MODS` (comma-separated)
 
-Examples:
-```
-addxp "Player1" Carpentry=100
-addxp "Player1" Aiming=50
-addxp "Player1" Fitness=200
-```
+Template for mod files:
+- `references/catalogs/mods/mod-template-items.md`
 
-Perks: Fitness, Strength, Sprinting, Axe, Blunt, SmallBlade, LongBlade, Aiming, Reloading, Carpentry, Cooking, Farming, Doctor, Electricity, Mechanics, Tailoring, Fishing, Trapping, Foraging
+## Operational notes
 
-### Spawning Vehicles
+- RCON port is usually game port + 1.
+- Requires gorcon `rcon` CLI.
+- Keep broadcast payloads single-line and concise.
 
-```
-addvehicle "<script>" "<username>"
-```
+## Repo maintenance rule (Stone)
 
-Examples:
-```
-addvehicle "Base.VanAmbulance" "Player1"
-addvehicle "Base.PickUpVan" "Player1"
-```
-
-Vehicles: `Base.CarNormal`, `Base.CarStationWagon`, `Base.PickUpVan`, `Base.VanAmbulance`, `Base.Van`, `Base.ModernCar`
-
-### World Events
-
-| Command | Effect |
-|---------|--------|
-| `createhorde <count> "user"` | Spawn zombies near player |
-| `chopper` | Helicopter flyover (random player) |
-| `gunshot` | Gunshot sound (attracts zombies) |
-| `alarm` | Building alarm (admin in room) |
-| `lightning "user"` | Lightning strike near player |
-| `thunder "user"` | Thunder sound |
-
-**Event narration pattern:**
-1. Broadcast warning message
-2. Wait a moment
-3. Trigger event
-
-Example flow:
-```
-servermsg "A helicopter is spotted on the horizon..."
-# wait
-chopper
-```
-
-### Weather Control
-
-| Command | Effect |
-|---------|--------|
-| `startrain` | Start rain |
-| `startrain <1-100>` | Rain with intensity |
-| `stoprain` | Stop rain |
-| `startstorm <hours>` | Start storm (game hours) |
-| `stopweather` | Clear all weather |
-
-**Weather narration:**
-```
-servermsg "Dark clouds gather overhead. Seek shelter."
-startrain
-# later...
-startstorm 2
-servermsg "The storm is upon us. This is going to be a rough night."
-```
-
-### Listing Players
-
-```
-players
-```
-
-Returns connected players for targeting events/rewards.
-
-## Narrative Patterns
-
-### Supply Drop
-```
-servermsg "Emergency broadcast: A military supply drop has been reported near [location]."
-servermsg "Survivors in the area, proceed with caution."
-```
-
-### Horde Warning
-```
-servermsg "Reports of a large group of infected moving toward [area]..."
-createhorde 50 "TargetPlayer"
-```
-
-### Weather Event
-```
-servermsg "National Weather Service: Severe thunderstorm warning in effect."
-startstorm 3
-```
-
-### Mystery/Atmosphere
-```
-servermsg "Strange lights seen in the sky last night. Officials have no comment."
-servermsg "If you hear scratching at your walls... don't open the door."
-```
-
-## Director Policy: Balance, Memory, and Tone (Stone)
-
-When operating in `#pz-molt` / in-game relay mode, enforce these gameplay rules:
-
-### 1) Track recent asks before acting
-- Keep lightweight state in a local file (e.g. `skills/pz-rcon/state/recent-requests.json`).
-- Track at least:
-  - player name
-  - request type (food/medical/weapon/xp/vehicle/event)
-  - timestamp
-  - what was granted
-- Before granting, check recent history (last 30-120 minutes) to prevent spam/repeat abuse.
-
-### 2) Escalate from generous to trolling when spammed
-- If a player repeats low-effort requests too often, reduce reward quality.
-- Example progression for repeated food begs:
-  1. normal food/help
-  2. weaker/less useful food
-  3. joke reward (dog food, empty can + fork, etc.)
-- Add a sarcastic in-universe quip when trolling.
-- Keep it funny, not abusive; stay in server roleplay tone.
-
-### 3) Keep XP boosts small and rare
-- XP should be occasional, not routine.
-- Prefer small boosts and long cooldowns per player/perk.
-- Avoid repeated large XP injections that break progression.
-
-### 4) Theme every response to the demand
-- Medical asks → triage/radio-medic tone.
-- Supply asks → scavenger/logistics tone.
-- Danger asks → emergency broadcast/survival warning tone.
-- Rewards and narration should feel diegetic (in-universe).
-
-### 5) Judge whether to reply/act on global chat
-- Not every message needs action.
-- Classify inbound relay messages:
-  - **Act now:** urgent distress, time-sensitive events, direct actionable requests.
-  - **Reply only:** flavor chatter or non-urgent requests.
-  - **Ignore/observe:** noise, duplicates, or non-actionable banter.
-- Prioritize server balance over pleasing every request.
-
-### 6) Anti-abuse defaults
-- Add per-player cooldowns by category (items/xp/vehicle/event).
-- Cap high-impact actions (vehicles, big hordes, large weapon drops).
-- Prefer “partial help” over full handouts when a player is repeatedly demanding.
-
-## Maintenance rule (StarbugStone)
-
-Whenever you update this `pz-rcon` skill (SKILL.md, scripts, references, packaging), you must **commit and push** the changes to the public GitHub repo:
-
+Whenever this skill changes (docs/scripts/catalogs/packaging), commit and push updates to:
 - https://github.com/StarbugMolt/pz-rcon-skill
-
-## Script Usage
-
-See `scripts/pz-rcon.sh` for the wrapper script.
-See `scripts/horde_night.sh` for triggering a server-wide zombie wave on all players.
-
-## Recommended Mods (B42)
-
-See `references/MODS.md` for a curated list of mods (Vehicles, Maps, Music) that work well with this skill.
-
-## Full Command Details
-
-See `references/commands.md` for complete syntax.

@@ -1,5 +1,30 @@
 {
-  "players": {},
-  "updatedAt": null,
+  "players": {
+    "StarbugStone": {
+      "requests": [
+        {
+          "ts": 1770728720,
+          "category": "medical",
+          "decision": "normal"
+        },
+        {
+          "ts": 1770728890,
+          "category": "accident",
+          "decision": "normal"
+        },
+        {
+          "ts": 1770729034,
+          "category": "vehicle",
+          "decision": "normal"
+        },
+        {
+          "ts": 1770729341,
+          "category": "vehicle",
+          "decision": "normal"
+        }
+      ]
+    }
+  },
+  "updatedAt": 1770729341,
   "notes": "Runtime memory for recent asks and reward throttling."
 }
