@@ -219,20 +219,31 @@ See `scripts/horde_night.sh` for triggering a server-wide zombie wave on all pla
 
 ## Reference Catalogs
 
-- Vanilla item lookup: `references/items-full.md`
-- Vanilla vehicle lookup: `references/vehicles-full.md`
+- Vanilla item lookup: `references/catalogs/vanilla/items-full.md`
+- Vanilla vehicle lookup: `references/catalogs/vanilla/vehicles-full.md`
+- Mod catalog template: `references/catalogs/mods/mod-template-items.md`
 - Command syntax: `references/commands.md`
 - Mod list ideas: `references/MODS.md`
+
+### Skill lookup scope (authoritative)
+
+The skill should treat these catalogs as its authoritative spawn/give lookup source:
+
+1. **All vanilla entries** from:
+   - `references/catalogs/vanilla/items-full.md`
+   - `references/catalogs/vanilla/vehicles-full.md`
+2. **All enabled mod entries** from per-mod files under:
+   - `references/catalogs/mods/`
 
 ### Mod item file convention
 
 Store mod-specific item catalogs in one file per mod using:
 
-- `references/mod-<modname>-items.md`
+- `references/catalogs/mods/mod-<modname>-items.md`
 
-Example: `references/mod-ki5-items.md`
+Example: `references/catalogs/mods/mod-ki5-items.md`
 
-Use `references/mod-template-items.md` as the template.
+Use `references/catalogs/mods/mod-template-items.md` as the template.
 
 ### Enabled mod source of truth
 
@@ -240,7 +251,7 @@ Read enabled mods from `.env` key:
 
 - `PZ_ENABLED_MODS` (comma-separated mod IDs)
 
-Only use a mod item file when the corresponding mod appears in `PZ_ENABLED_MODS`.
+Only use mod files whose `<modname>` appears in `PZ_ENABLED_MODS`.
 
 ## Full Command Details
 
