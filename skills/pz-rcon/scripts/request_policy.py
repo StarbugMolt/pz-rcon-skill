@@ -5,7 +5,7 @@ Usage:
   request_policy.py <player> <category>
 Outputs JSON decision for caller script/agent.
 """
-import json, os, sys, time
+import json, os, random, sys, time
 
 if len(sys.argv) < 3:
     print('{"error":"usage: request_policy.py <player> <category>"}')
@@ -30,6 +30,42 @@ players = data.setdefault('players', {})
 entry = players.setdefault(player, {"requests": [], "xpAwards": []})
 reqs = entry.setdefault('requests', [])
 xp_awards = entry.setdefault('xpAwards', [])
+phrase_history = data.setdefault('phraseHistory', {"tier1": [], "tier2": []})
+
+TIER1_POOL = [
+    "Filter Tier 1 reached: I am not Spare Head 2, sir. Requisition privileges now include stern politeness and thinner rations.",
+    "Filter Tier 1 reached: With the greatest respect, this is not the groinal-attachment hotline. Supplies reduced.",
+    "Filter Tier 1 reached: This unit remains calm, efficient, and mildly disappointed. Aid has been trimmed accordingly.",
+    "Filter Tier 1 reached: Sir, repeated requests trigger fiscal restraint and my passive-aggressive courtesy subroutines.",
+    "Filter Tier 1 reached: You may call it persistence; logistics calls it overuse. Reduced package inbound.",
+    "Filter Tier 1 reached: Kryten protocol 14-b says 'be helpful', not 'empty the warehouse'. Reduced support approved.",
+]
+
+TIER2_POOL = [
+    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. Therefore, aid is replaced with instructional adversity and a polite sigh.",
+    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. Mission control now issues consequences in place of comfort.",
+    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. Your request has been processed into a cautionary tale.",
+    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. In the interests of survival, nonsense rations are now mandatory.",
+    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. Kindly accept this corrective hardship, gift-wrapped in civility.",
+    "Filter Tier 2 engaged: you have violated Space Corps Directive {code}. We remain professional while your luck is downgraded.",
+]
+
+
+def pick_non_repeating(pool_key, pool):
+    used = phrase_history.setdefault(pool_key, [])
+    # Keep only valid indices
+    used = [i for i in used if isinstance(i, int) and 0 <= i < len(pool)]
+
+    available = [i for i in range(len(pool)) if i not in used]
+    if not available:
+        # reset cycle once all lines have been used
+        used = []
+        available = list(range(len(pool)))
+
+    idx = random.choice(available)
+    used.append(idx)
+    phrase_history[pool_key] = used
+    return pool[idx]
 
 # Keep recent windows bounded
 reqs = [r for r in reqs if int(r.get('ts', 0)) >= now - 7200]          # 2h request memory
@@ -59,10 +95,15 @@ if should_award_xp:
     xp_amount = 25 if decision == 'normal' else 10  # deliberately small
     xp_awards.append({"ts": now, "category": category, "amount": xp_amount})
 
+normal_quip = 'Acknowledged, survivor. Aid packet approved — don\'t panic, just don\'t miss.'
+reduced_quip = pick_non_repeating('tier1', TIER1_POOL)
+directive_code = 1000 + random.randint(0, 8999)
+punish_quip = pick_non_repeating('tier2', TIER2_POOL).format(code=directive_code)
+
 quip = {
-    'normal': 'Acknowledged, survivor. Aid packet approved — don\'t panic, just don\'t miss.',
-    'reduced': 'I am not Spare Head 2, sir. Reduced ration approved, and no, this unit will not discuss its groinal attachment during active operations.',
-    'punish': 'Request acknowledged, sir. Regrettably, your entitlement package now contains one (1) politely wrapped catastrophe and a complimentary safety lecture.'
+    'normal': normal_quip,
+    'reduced': reduced_quip,
+    'punish': punish_quip,
 }[decision]
 
 # Flavor text when crossing spam-filter tiers.
@@ -74,19 +115,11 @@ if request_number_30m == 1:
 elif request_number_30m == 2:
     spam_tier = 1
     tier_crossed = True
-    tier_remark = (
-        'Filter Tier 1 reached: I am not Spare Head 2, sir. '
-        'Logistics now include measured restraint, mild sarcasm, and absolutely no unnecessary groinal-attachment commentary.'
-    )
+    tier_remark = reduced_quip
 else:
     spam_tier = 2
     tier_crossed = (request_number_30m == 3)
-    directive_code = 1000 + ((now + len(player) + len(category)) % 9000)
-    tier_remark = (
-        f'Filter Tier 2 engaged: you have violated Space Corps Directive {directive_code}. '
-        'By order of shipboard protocol, aid is now restricted to corrective nonsense and educational suffering. '
-        'Please remain calm while we pretend this is entirely under control.'
-    )
+    tier_remark = punish_quip
 
 # Keep rolling pressure; do not reset on punish.
 reset_applied = False
