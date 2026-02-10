@@ -19,6 +19,7 @@ skill_dir = os.path.dirname(os.path.dirname(__file__))
 state_dir = os.path.join(skill_dir, 'state')
 os.makedirs(state_dir, exist_ok=True)
 state_file = os.path.join(state_dir, 'recent-requests.json')
+profiles_file = os.path.join(state_dir, 'player-profiles.json')
 
 if os.path.exists(state_file):
     with open(state_file, 'r', encoding='utf-8') as f:
@@ -67,6 +68,46 @@ def pick_non_repeating(pool_key, pool):
     phrase_history[pool_key] = used
     return pool[idx]
 
+
+def load_profiles():
+    if os.path.exists(profiles_file):
+        with open(profiles_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {"players": {}, "updatedAt": None}
+
+
+def save_profiles(profiles):
+    with open(profiles_file, 'w', encoding='utf-8') as f:
+        json.dump(profiles, f, ensure_ascii=False, indent=2)
+
+
+def guess_honorific(name):
+    n = (name or '').strip().lower()
+    female_markers = ['miss', 'mrs', 'ms', 'maam', "ma'am", 'lady', 'queen', 'princess', 'girl']
+    if any(m in n for m in female_markers):
+        return 'maam'
+    return 'mister'
+
+profiles = load_profiles()
+profile_players = profiles.setdefault('players', {})
+player_profile = profile_players.setdefault(player, {})
+if player_profile.get('honorific'):
+    honorific = player_profile['honorific']
+    honorific_source = 'stored'
+else:
+    honorific = guess_honorific(player)
+    honorific_source = 'guessed'
+    player_profile['honorific'] = honorific
+    profiles['updatedAt'] = now
+    save_profiles(profiles)
+
+if honorific == 'maam':
+    salutation = f"Ma'am {player}"
+elif honorific == 'miss':
+    salutation = f"Miss {player}"
+else:
+    salutation = f"Mister {player}, sir"
+
 # Keep recent windows bounded
 reqs = [r for r in reqs if int(r.get('ts', 0)) >= now - 7200]          # 2h request memory
 xp_awards = [x for x in xp_awards if int(x.get('ts', 0)) >= now - 86400]  # 24h xp memory
@@ -95,7 +136,7 @@ if should_award_xp:
     xp_amount = 25 if decision == 'normal' else 10  # deliberately small
     xp_awards.append({"ts": now, "category": category, "amount": xp_amount})
 
-normal_quip = 'Acknowledged, sir — I\'m passing that to the cranky terminal now. Aid packet approved, please don\'t panic before I do.'
+normal_quip = 'Acknowledged — I\'m passing that to the cranky terminal now. Aid packet approved, please don\'t panic before I do.'
 reduced_quip = pick_non_repeating('tier1', TIER1_POOL)
 directive_code = random.randint(10000, 100000)
 
@@ -154,6 +195,10 @@ else:
 if spam_tier == 3:
     quip = tier_remark
 
+# Always include gendered salutation in player-facing lines.
+quip = f"{salutation} — {quip}"
+tier_remark = f"{salutation} — {tier_remark}"
+
 # Keep rolling pressure; do not reset on punish.
 reset_applied = False
 reqs.append({"ts": now, "category": category, "decision": decision})
@@ -165,6 +210,9 @@ with open(state_file, 'w', encoding='utf-8') as f:
 print(json.dumps({
     "player": player,
     "category": category,
+    "honorific": honorific,
+    "honorificSource": honorific_source,
+    "salutation": salutation,
     "decision": decision,
     "recentSameCategory30m": count,
     "requestNumber30m": request_number_30m,
