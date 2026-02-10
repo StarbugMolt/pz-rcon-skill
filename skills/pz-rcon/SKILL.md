@@ -62,12 +62,14 @@ Track at least player, category, timestamp, and grant result.
 ### 2) Anti-spam escalation ladder (same category, 30m window)
 - ask #1 → `normal`
 - ask #2 → `reduced`
-- ask #3+ → `punish`
+- ask #3 → `punish` (tier-2 warning consequences)
+- ask #4+ → `punish` (tier-3 escalation; horde-capable consequence)
 
 Use sarcastic but non-abusive in-universe tone for punish outcomes.
 When a player crosses into a higher spam tier, include a creative/snarky tier-crossing remark (implemented via `request_policy.py` fields like `tierCrossed` + `tierRemark`).
 Tier 1 and Tier 2 quip lines must be non-repeating until their configured phrase pools are exhausted (then cycle resets).
-For Tier 2 crossing, apply a harsher in-world warning beat when appropriate (e.g., `alarm`, `gunshot`, or `chopper`) via policy hint `recommendedEvent`.
+For Tier 2 crossing, apply a harsher in-world warning beat (e.g., `alarm`, `gunshot`, or `chopper`) via policy hint `recommendedEvent`.
+If the player keeps pushing beyond Tier 2, escalate to Tier 3 and allow horde-level consequence via `recommendedEvent: horde`.
 
 ### 3) XP must stay small and rare
 - XP is occasional, never routine.

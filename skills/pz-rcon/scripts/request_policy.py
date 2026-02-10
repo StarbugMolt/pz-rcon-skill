@@ -78,7 +78,7 @@ count = len(same_cat_30m)
 request_number_30m = count + 1
 
 # Escalation ladder for repeated same-category asks in 30m window:
-# #1 -> normal, #2 -> reduced, #3+ -> punish
+# #1 -> normal, #2 -> reduced, #3 -> punish (tier 2), #4+ -> punish (tier 3)
 if count == 0:
     decision = 'normal'
 elif count == 1:
@@ -107,7 +107,7 @@ quip = {
 }[decision]
 
 # Flavor text when crossing spam-filter tiers.
-# Tier 0: normal, Tier 1: reduced, Tier 2: punish.
+# Tier 0: normal, Tier 1: reduced, Tier 2: punish-warning, Tier 3: punish-horde.
 if request_number_30m == 1:
     spam_tier = 0
     tier_crossed = False
@@ -116,18 +116,28 @@ elif request_number_30m == 2:
     spam_tier = 1
     tier_crossed = True
     tier_remark = reduced_quip
-else:
+elif request_number_30m == 3:
     spam_tier = 2
-    tier_crossed = (request_number_30m == 3)
+    tier_crossed = True
     tier_remark = punish_quip
+else:
+    spam_tier = 3
+    tier_crossed = (request_number_30m == 4)
+    tier_remark = (
+        f'You have violated Space Corps Directive {directive_code}. '
+        'Escalation acknowledged: hostile crowd-control protocols are now authorized. '
+        'If you keep pressing this channel, the dead may file a personal complaint.'
+    )
 
 # Optional in-world consequence suggestions for escalation handling.
-# On first punish crossing, suggest a stronger warning event.
 recommended_event = None
-if decision == 'punish' and tier_crossed:
+if decision == 'punish' and spam_tier == 2:
     recommended_event = random.choice(['alarm', 'gunshot', 'chopper'])
-elif decision == 'punish':
-    recommended_event = random.choice(['gunshot', 'thunder'])
+elif decision == 'punish' and spam_tier == 3:
+    recommended_event = 'horde'
+
+if spam_tier == 3:
+    quip = tier_remark
 
 # Keep rolling pressure; do not reset on punish.
 reset_applied = False
