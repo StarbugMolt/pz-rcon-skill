@@ -17,6 +17,7 @@ Project Zomboid Build 42 RCON helper for atmosphere/events and controlled live-o
 - `scripts/pz-rcon.sh` — command wrapper
 - `scripts/ambient_tick.sh` — 5-minute ambient narrative loop
 - `scripts/request_policy.py` — anti-spam decision helper
+- `scripts/set_player_honorific.py` — store player honorific (`mister|maam|miss`)
 
 ## Canonical docs
 
