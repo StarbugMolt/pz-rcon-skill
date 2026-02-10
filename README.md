@@ -222,3 +222,8 @@ The skill now separates live-ops behavior into two tracks:
 State files:
 - `pz-rcon/state/narrative-state.json`
 - `pz-rcon/state/recent-requests.json`
+
+## Operator Setup & Relay Runbook
+
+For installation, Discord relay back-and-forth notes, and mod onboarding workflow, see:
+- `SETUP-OPS.md`

@@ -238,7 +238,7 @@ See `scripts/request_policy.py` for help-request anti-spam decisioning.
 - Vanilla vehicle lookup: `references/catalogs/vanilla/vehicles-full.md`
 - Mod catalog template: `references/catalogs/mods/mod-template-items.md`
 - Command syntax: `references/commands.md`
-- Mod list ideas: `references/MODS.md`
+- Setup/ops docs are kept outside the active skill references (repo root setup doc + `references/archive/`).
 
 ### Skill lookup scope (authoritative)
 
