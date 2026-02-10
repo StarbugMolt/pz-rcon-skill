@@ -66,7 +66,7 @@ else
     1) $DIR/pz-rcon.sh msg "Radio static clears: keep your lights low and your exits planned." ;;
     2) $DIR/pz-rcon.sh msg "Survivor tip: overconfidence is a short walk to becoming lunch." ;;
     3) $DIR/pz-rcon.sh msg "The wind carries no comfort today. Travel in caution, not in hope." ;;
-    4) $DIR/pz-rcon.sh msg "Operations note: roads are safer than forests, until they are not." ;;
+    4) $DIR/pz-rcon.sh msg "Emergency band note: roads are safer than forests, until they are not." ;;
     5) $DIR/pz-rcon.sh msg "Quiet skies over Knox County. Enjoy it before reality remembers you." ;;
   esac
 fi

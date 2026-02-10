@@ -90,6 +90,8 @@ If the player keeps pushing beyond Tier 2, escalate to Tier 3 and allow horde-le
 
 ### 5) Keep systems split
 - **Ambient Director** (`ambient_tick.sh`): atmosphere while players are online; events are rarer and cooldown-gated.
+  - Must stay fully in-world as GM/roleplay broadcast.
+  - No Kryten direct-address style, no DM-like assistant framing.
 - **Help Request Handler** (`request_policy.py` + operator/agent action): direct responses to player asks with anti-spam enforcement.
 
 ### 6) Balance defaults
