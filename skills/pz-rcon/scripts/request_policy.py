@@ -42,12 +42,12 @@ TIER1_POOL = [
 ]
 
 TIER2_POOL = [
-    "Sorry, sir — Space Corps Directive {code} has just tripped and the main computer has gone peculiar. Brace for an alarm event.",
-    "Oh dear, sir: Directive {code} breach confirmed. Main computer is senile and has scheduled a gunshot distraction.",
-    "Apologies, sir, Directive {code} is now yelling at me in capital letters. Helicopter attention may be imminent.",
-    "Bad news politely delivered, sir: Directive {code} violation logged. Systems insist on a noisy corrective measure.",
-    "Respectfully panicking, sir — Directive {code} triggered containment theatrics. Expect loud consequences.",
-    "I would rather not, sir, but Directive {code} has overruled my bedside manner. Hazard event queued.",
+    "Sorry, sir — Space Corps Directive {code} has just tripped and the main computer has gone peculiar. Brace for {event_label}.",
+    "Oh dear, sir: Directive {code} breach confirmed. Main computer is senile and has scheduled {event_label}.",
+    "Apologies, sir, Directive {code} is now yelling at me in capital letters. {event_label_cap} may be imminent.",
+    "Bad news politely delivered, sir: Directive {code} violation logged. Systems insist on {event_label}.",
+    "Respectfully panicking, sir — Directive {code} triggered containment theatrics. Expect {event_label}.",
+    "I would rather not, sir, but Directive {code} has overruled my bedside manner. {event_label_cap} queued.",
 ]
 
 
@@ -98,7 +98,29 @@ if should_award_xp:
 normal_quip = 'Acknowledged, sir — I\'m passing that to the cranky terminal now. Aid packet approved, please don\'t panic before I do.'
 reduced_quip = pick_non_repeating('tier1', TIER1_POOL)
 directive_code = random.randint(10000, 100000)
-punish_quip = pick_non_repeating('tier2', TIER2_POOL).format(code=directive_code)
+
+# Event suggestion is part of escalation flavor; compute before punish line rendering.
+recommended_event = None
+if decision == 'punish' and request_number_30m == 3:
+    recommended_event = random.choice(['alarm', 'gunshot', 'chopper'])
+elif decision == 'punish' and request_number_30m >= 4:
+    recommended_event = 'horde'
+
+event_label_map = {
+    'alarm': 'a facility alarm',
+    'gunshot': 'a gunshot distraction',
+    'chopper': 'a helicopter flyover',
+    'horde': 'a horde deployment',
+    None: 'an unpleasant surprise',
+}
+event_label = event_label_map.get(recommended_event, 'an unpleasant surprise')
+event_label_cap = event_label[:1].upper() + event_label[1:]
+
+punish_quip = pick_non_repeating('tier2', TIER2_POOL).format(
+    code=directive_code,
+    event_label=event_label,
+    event_label_cap=event_label_cap,
+)
 
 quip = {
     'normal': normal_quip,
@@ -128,13 +150,6 @@ else:
         'Main computer is panicking and has authorized hostile crowd-control. '
         'If this channel keeps screaming, the dead may arrive to submit a formal complaint.'
     )
-
-# Optional in-world consequence suggestions for escalation handling.
-recommended_event = None
-if decision == 'punish' and spam_tier == 2:
-    recommended_event = random.choice(['alarm', 'gunshot', 'chopper'])
-elif decision == 'punish' and spam_tier == 3:
-    recommended_event = 'horde'
 
 if spam_tier == 3:
     quip = tier_remark
