@@ -181,3 +181,27 @@ If you’re using OpenClaw skills:
 ## License
 
 MIT — see `LICENSE`.
+
+## Reference Catalogs (Vanilla + Mods)
+
+To keep lookup clean and deterministic, the skill uses structured catalogs:
+
+- Vanilla items: `pz-rcon/references/catalogs/vanilla/items-full.md`
+- Vanilla vehicles: `pz-rcon/references/catalogs/vanilla/vehicles-full.md`
+- Mod templates/files: `pz-rcon/references/catalogs/mods/`
+  - Naming convention: `mod-<modname>-items.md`
+
+### Active mod scope
+
+Enabled mods are declared in:
+
+- `pz-rcon/.env` → `PZ_ENABLED_MODS` (comma-separated mod IDs)
+
+Skill lookup policy:
+1. Always allow all entries from vanilla catalogs.
+2. Only allow mod catalog entries for mods present in `PZ_ENABLED_MODS`.
+
+### Env templates
+
+- Local secrets/runtime config: `pz-rcon/.env` (not committed)
+- Shareable template: `pz-rcon/.env.example`
