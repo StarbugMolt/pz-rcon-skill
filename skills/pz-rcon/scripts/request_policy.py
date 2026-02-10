@@ -61,7 +61,7 @@ if should_award_xp:
 
 quip = {
     'normal': 'Acknowledged, survivor. Aid packet approved — don\'t panic, just don\'t miss.',
-    'reduced': 'You\'re back on this frequency again? Fine. Reduced ration; consider it a character-building experience.',
+    'reduced': 'I am not Spare Head 2, sir. Reduced ration approved, and no, this unit will not discuss its groinal attachment during active operations.',
     'punish': 'Request acknowledged, sir. Regrettably, your entitlement package now contains one (1) politely wrapped catastrophe and a complimentary safety lecture.'
 }[decision]
 
@@ -74,7 +74,10 @@ if request_number_30m == 1:
 elif request_number_30m == 2:
     spam_tier = 1
     tier_crossed = True
-    tier_remark = 'Filter Tier 1 reached: persistence noted. Supplies now arrive with budget cuts and light sarcasm.'
+    tier_remark = (
+        'Filter Tier 1 reached: I am not Spare Head 2, sir. '
+        'Logistics now include measured restraint, mild sarcasm, and absolutely no unnecessary groinal-attachment commentary.'
+    )
 else:
     spam_tier = 2
     tier_crossed = (request_number_30m == 3)
