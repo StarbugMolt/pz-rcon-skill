@@ -97,6 +97,8 @@ If the player keeps pushing beyond Tier 2, escalate to Tier 3 and allow horde-le
 ### 6) Balance defaults
 - per-player cooldowns by category
 - strict caps on high-impact actions (vehicles, large hordes, heavy weapon drops)
+  - **Narrative Exception:** The **Ambient Director** (not user requests) MAY grant high-value rewards (vehicles, heavy weapons, sledgehammers) *only* as a direct follow-up to a negative event (helicopter, horde).
+  - *Condition:* The reward must be strictly diegetic and "winded into" the event story (e.g., "Chopper 4-2 down, securing crash site supplies," or "Convoy overrun, keys lost in the swarm").
 - prefer partial help over full handouts for repeat demanders
 
 ## Lookup scope (authoritative)
