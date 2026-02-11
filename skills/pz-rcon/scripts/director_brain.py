@@ -153,10 +153,11 @@ def run_rcon(args):
         return False
 
 # --- CREATIVE REWARD LOGIC ---
-def generate_creative_reward(theme, reward_type, target_player):
+def generate_creative_reward(theme, reward_type, target_player, state):
     """
     Dynamically selects a reward and crafts a narrative message.
     Now supports multiple reward categories: vehicle, weapon, medical, supply.
+    Handles vehicle spawn failures (player indoors) with retry logic.
     """
     category_map = {
         "vehicle": "vehicle",
@@ -182,9 +183,30 @@ def generate_creative_reward(theme, reward_type, target_player):
             f"{prefix} Transport {item} disabled near {target_player}. Salvage authorized."
         ]
         msg = random.choice(templates)
-        run_rcon(["msg", msg])
-        run_rcon(["vehicle", item, target_player])
-        print(f"REWARD: Vehicle {item} -> {target_player}")
+        
+        # Attempt vehicle spawn
+        success = run_rcon(["vehicle", item, target_player])
+        
+        if success:
+            run_rcon(["msg", msg])
+            print(f"REWARD: Vehicle {item} -> {target_player}")
+            return True
+        else:
+            # Spawn failed (likely player indoors/invalid position)
+            retry_count = state.get("pendingRewardRetries", 0)
+            if retry_count < 3:
+                # Keep reward pending, increment retry counter
+                state["pendingRewardRetries"] = retry_count + 1
+                run_rcon(["msg", f"{prefix} Vehicle deploy delayed. {target_player}, move to open ground for asset delivery."])
+                print(f"REWARD: Vehicle spawn failed, retry {retry_count + 1}/3")
+                return False  # Keep reward pending
+            else:
+                # Max retries exceeded, downgrade to weapon reward
+                run_rcon(["msg", f"{prefix} Vehicle delivery aborted. Switching to equipment drop."])
+                state["pendingReward"] = "weapon"
+                state["pendingRewardRetries"] = 0
+                print(f"REWARD: Vehicle spawn failed after 3 retries, downgrading to weapon")
+                return False
         
     elif category == "weapon":
         templates = [
@@ -229,6 +251,7 @@ def generate_creative_reward(theme, reward_type, target_player):
         run_rcon(["give", target_player, item, str(count)])
         print(f"REWARD: Supply {item} x{count} -> {target_player}")
     
+    state["pendingRewardRetries"] = 0  # Clear retry counter on successful delivery
     return True
 
 # --- LOGIC ---
@@ -278,8 +301,14 @@ def main():
     # 3. Process Pending Rewards (High Priority)
     if state.get("pendingReward") and target_player:
         reward_type = state["pendingReward"]
-        generate_creative_reward(theme, reward_type, target_player)
-        state["pendingReward"] = None
+        success = generate_creative_reward(theme, reward_type, target_player, state)
+        
+        if success:
+            # Reward delivered successfully, clear it
+            state["pendingReward"] = None
+            state["pendingRewardRetries"] = 0
+        # else: reward stays pending for next tick (vehicle retry logic)
+        
         state["lastActionTs"] = now
         save_state(state)
         return
@@ -312,7 +341,8 @@ def main():
                 if target_player:
                     run_rcon(["msg", f"{random.choice(theme['prefixes'])} Massive bio-signal convergence detected near {target_player}."])
                     run_rcon(["horde", str(count), target_player])
-                    state["pendingReward"] = random.choice(["vehicle", "supply"])
+                    # Horde is highest threat -> best rewards (vehicle or weapon only)
+                    state["pendingReward"] = random.choice(["vehicle", "weapon"])
                 else:
                     run_rcon(["msg", f"{random.choice(theme['prefixes'])} Massive bio-signals migrating across the sector."])
                     run_rcon(["gunshot"])
@@ -320,7 +350,8 @@ def main():
             elif etype == "alarm":
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Security system breach. Building alarms triggered."])
                 run_rcon(["alarm"])
-                state["pendingReward"] = random.choice(["supply", "weapon"])
+                # Alarm is moderate threat -> medical or weapon
+                state["pendingReward"] = random.choice(["medical", "weapon"])
             
             state["lastEventTs"] = now
             print(f"ACTION: Bad Event {etype}")
