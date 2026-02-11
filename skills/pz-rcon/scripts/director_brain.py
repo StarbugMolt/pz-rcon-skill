@@ -8,10 +8,8 @@ import subprocess
 
 # --- CONFIGURATION ---
 STATE_FILE = os.path.join(os.path.dirname(__file__), "../state/narrative-state.json")
-# If no players are online, ambient_tick.sh should delete the state file to trigger a reset.
-# This script assumes if it runs, players ARE online.
 
-# --- PLOT THEMES ---
+# --- EXPANDED PLOT THEMES ---
 THEMES = {
     "MILITARY_COLLAPSE": {
         "name": "Operation Broken Shield",
@@ -23,8 +21,10 @@ THEMES = {
             "Do not approach military checkpoints. They are not staffed by the living."
         ],
         "rewards": {
-            "vehicle": ["Base.PickUpVan", "Base.Humvee"], # Humvee might be modded, stick to vanilla safe ones first
-            "weapon": ["Base.AssaultRifle", "Base.Shotgun", "Base.556Box", "Base.ShellsBox"]
+            "vehicle": ["Base.PickUpVan", "Base.VanAmbulance", "Base.OffRoad"],
+            "weapon": ["Base.AssaultRifle", "Base.Shotgun", "Base.223Box", "Base.308Box"],
+            "medical": ["Base.FirstAidKit", "Base.Antibiotics", "Base.SutureNeedle"],
+            "supply": ["Base.Generator", "Base.PropaneTank", "Base.CannedBeans"]
         }
     },
     "THE_STORM": {
@@ -38,7 +38,9 @@ THEMES = {
         ],
         "rewards": {
             "vehicle": ["Base.CarStationWagon", "Base.Van"],
-            "weapon": ["Base.Sledgehammer", "Base.Axe", "Base.WoodAxe"] # Tools for storm prep
+            "weapon": ["Base.Axe", "Base.Crowbar", "Base.Machete"],
+            "medical": ["Base.Bandage", "Base.Disinfectant"],
+            "supply": ["Base.WaterBottleFull", "Base.Lighter", "Base.Matches", "Base.Bag_ALICEpack"]
         }
     },
     "THE_ANARCHY": {
@@ -51,8 +53,90 @@ THEMES = {
             "Exchange: Will trade ammunition for antibiotics."
         ],
         "rewards": {
-            "vehicle": ["Base.StepVan", "Base.PickUpTruck"],
-            "weapon": ["Base.Pistol", "Base.Bullets9mmBox", "Base.Shotgun"]
+            "vehicle": ["Base.StepVan", "Base.PickUpTruck", "Base.SUV"],
+            "weapon": ["Base.Pistol", "Base.9mmClip", "Base.Shotgun", "Base.ShotgunShells"],
+            "medical": ["Base.Pills", "Base.Painkillers"],
+            "supply": ["Base.WhiskeyFull", "Base.CannedSoup", "Base.TunaTin"]
+        }
+    },
+    "MEDICAL_EVAC": {
+        "name": "MEDEVAC Tango-4",
+        "prefixes": ["MEDEVAC Relay:", "Field Hospital:", "Red Cross Net:"],
+        "flavor": [
+            "Triage site overrun. All personnel withdrawn.",
+            "Patient zero confirmed in sector. Avoid all medical facilities.",
+            "Blood supplies contaminated. Do not trust stockpiles.",
+            "Field ambulance 7 reporting engine failure. Cannot extract."
+        ],
+        "rewards": {
+            "vehicle": ["Base.VanAmbulance"],
+            "weapon": ["Base.KitchenKnife", "Base.Scalpel"],
+            "medical": ["Base.FirstAidKit", "Base.Antibiotics", "Base.SutureNeedle", "Base.AlcoholBandage"],
+            "supply": ["Base.Bag_DuffelBag"]
+        }
+    },
+    "WILDFIRE": {
+        "name": "Red Sky Protocol",
+        "prefixes": ["Fire Watch:", "Forestry Alert:", "Emergency Broadcast:"],
+        "flavor": [
+            "Wildfire crossed Highway 31. Winds pushing east.",
+            "Smoke inhalation risk critical. Respirators mandatory.",
+            "Evacuation route Alpha is compromised by flame front.",
+            "Fire crews retreated. You are on your own."
+        ],
+        "rewards": {
+            "vehicle": ["Base.PickUpTruckLightsFire", "Base.PickUpTruck"],
+            "weapon": ["Base.Axe", "Base.Machete"],
+            "medical": ["Base.Bandage", "Base.AlcoholWipes"],
+            "supply": ["Base.WaterBottleFull", "Base.WeldingMask", "Base.PropaneTank"]
+        }
+    },
+    "REFUGEE_CONVOY": {
+        "name": "Exodus Line Charlie",
+        "prefixes": ["Convoy Lead:", "Survivor Net:", "Refugee Freq:"],
+        "flavor": [
+            "Convoy ambushed at mile marker 12. Survivors scattered.",
+            "Trading post near Riverside is fortified. Approach with caution.",
+            "Looking for fuel. Will barter medical supplies.",
+            "Trust no one outside the convoy. Repeat: trust no one."
+        ],
+        "rewards": {
+            "vehicle": ["Base.VanSeats", "Base.CarStationWagon", "Base.SmallCar02"],
+            "weapon": ["Base.BaseballBat", "Base.Hammer"],
+            "medical": ["Base.FirstAidKit", "Base.Pills"],
+            "supply": ["Base.CannedCorn", "Base.PopBottle", "Base.Bag_DuffelBag"]
+        }
+    },
+    "SCIENCE_BREACH": {
+        "name": "Project Lazarus",
+        "prefixes": ["Lab Net:", "Containment Alert:", "Research Directive:"],
+        "flavor": [
+            "Biohazard level 4 breach confirmed. Facility lockdown failed.",
+            "Test subjects have exceeded containment parameters.",
+            "Do not approach the research campus. Lethal protocols active.",
+            "Sample X-7 is unrecoverable. Incineration recommended."
+        ],
+        "rewards": {
+            "vehicle": ["Base.VanAmbulance", "Base.StepVan"],
+            "weapon": ["Base.HuntingRifle", "Base.308Box"],
+            "medical": ["Base.Antibiotics", "Base.SutureNeedle", "Base.Disinfectant"],
+            "supply": ["Base.Generator", "Base.WeldingMask", "Base.FirstAidKit"]
+        }
+    },
+    "POWER_GRID_COLLAPSE": {
+        "name": "Grid Failure Zulu",
+        "prefixes": ["Power Authority:", "Grid Control:", "Emergency Services:"],
+        "flavor": [
+            "Main substation offline. Backup generators failing.",
+            "Do not approach transformer stations. Electrical hazards remain.",
+            "Rolling blackouts expected indefinitely. Prepare for dark.",
+            "Looters targeting fuel depots. Exercise extreme caution."
+        ],
+        "rewards": {
+            "vehicle": ["Base.VanSeats", "Base.PickUpVan"],
+            "weapon": ["Base.Wrench", "Base.Screwdriver", "Base.Crowbar"],
+            "medical": ["Base.Bandage"],
+            "supply": ["Base.Generator", "Base.PropaneTank", "Base.Lighter", "Base.Matches"]
         }
     }
 }
@@ -67,6 +151,85 @@ def run_rcon(args):
     except subprocess.CalledProcessError as e:
         print(f"RCON Error: {e.stderr.decode()}", file=sys.stderr)
         return False
+
+# --- CREATIVE REWARD LOGIC ---
+def generate_creative_reward(theme, reward_type, target_player):
+    """
+    Dynamically selects a reward and crafts a narrative message.
+    Now supports multiple reward categories: vehicle, weapon, medical, supply.
+    """
+    category_map = {
+        "vehicle": "vehicle",
+        "weapon": "weapon",
+        "medical": "medical",
+        "supply": "supply"
+    }
+    
+    category = category_map.get(reward_type, "supply")
+    items = theme["rewards"].get(category, [])
+    
+    if not items or not target_player:
+        return False
+    
+    item = random.choice(items)
+    prefix = random.choice(theme["prefixes"])
+    
+    # Narrative templates per category
+    if category == "vehicle":
+        templates = [
+            f"{prefix} Convoy asset {item} abandoned. Coordinates near {target_player}.",
+            f"{prefix} Vehicle {item} located. Previous crew unresponsive.",
+            f"{prefix} Transport {item} disabled near {target_player}. Salvage authorized."
+        ]
+        msg = random.choice(templates)
+        run_rcon(["msg", msg])
+        run_rcon(["vehicle", item, target_player])
+        print(f"REWARD: Vehicle {item} -> {target_player}")
+        
+    elif category == "weapon":
+        templates = [
+            f"{prefix} Weapons cache secured. Distributing {item} to {target_player}.",
+            f"{prefix} Armory breach. {item} available for recovery near {target_player}.",
+            f"{prefix} Supply drop inbound. Contents: {item}. Mark position."
+        ]
+        msg = random.choice(templates)
+        run_rcon(["msg", msg])
+        run_rcon(["give", target_player, item, "1"])
+        
+        # Add ammo if firearm
+        if "Pistol" in item or "9mm" in item:
+            run_rcon(["give", target_player, "Base.9mmClip", "2"])
+        elif "Shotgun" in item:
+            run_rcon(["give", target_player, "Base.ShotgunShells", "8"])
+        elif "Rifle" in item or "223" in item or "308" in item:
+            run_rcon(["give", target_player, "Base.223Box", "1"])
+            
+        print(f"REWARD: Weapon {item} -> {target_player}")
+        
+    elif category == "medical":
+        templates = [
+            f"{prefix} Medical supplies located. {item} available at {target_player} position.",
+            f"{prefix} Field hospital overrun. Securing {item} for survivor use.",
+            f"{prefix} Triage cache found. Distributing {item} to {target_player}."
+        ]
+        msg = random.choice(templates)
+        run_rcon(["msg", msg])
+        run_rcon(["give", target_player, item, "3"])
+        print(f"REWARD: Medical {item} -> {target_player}")
+        
+    elif category == "supply":
+        templates = [
+            f"{prefix} Scavenge site secured. {item} recovered near {target_player}.",
+            f"{prefix} Supply depot accessible. Contents include {item}.",
+            f"{prefix} Survivor cache found. {item} distributed to {target_player}."
+        ]
+        msg = random.choice(templates)
+        run_rcon(["msg", msg])
+        count = random.randint(2, 5)
+        run_rcon(["give", target_player, item, str(count)])
+        print(f"REWARD: Supply {item} x{count} -> {target_player}")
+    
+    return True
 
 # --- LOGIC ---
 def main():
@@ -115,26 +278,7 @@ def main():
     # 3. Process Pending Rewards (High Priority)
     if state.get("pendingReward") and target_player:
         reward_type = state["pendingReward"]
-        
-        if reward_type == "vehicle":
-            veh = random.choice(theme["rewards"]["vehicle"])
-            # Lore:
-            msg = f"{random.choice(theme['prefixes'])} Convoy hit nearby. Asset {veh} abandoned near {target_player}."
-            run_rcon(["msg", msg])
-            run_rcon(["vehicle", veh, target_player])
-            print(f"ACTION: Reward Vehicle {veh} to {target_player}")
-            
-        elif reward_type == "weapon":
-            wep = random.choice(theme["rewards"]["weapon"])
-            # Lore:
-            msg = f"{random.choice(theme['prefixes'])} Supply crate lost in transit. Securing payload near {target_player}."
-            run_rcon(["msg", msg])
-            run_rcon(["give", target_player, wep, "1"])
-            # Add ammo box for good measure
-            if "Shotgun" in wep: run_rcon(["give", target_player, "Base.ShellsBox", "2"])
-            if "Rifle" in wep: run_rcon(["give", target_player, "Base.556Box", "2"])
-            print(f"ACTION: Reward Weapon {wep} to {target_player}")
-
+        generate_creative_reward(theme, reward_type, target_player)
         state["pendingReward"] = None
         state["lastActionTs"] = now
         save_state(state)
@@ -154,38 +298,46 @@ def main():
         # TRIGGER EVENT
         event_roll = random.randint(1, 100)
         
-        if event_roll <= 30: 
+        if event_roll <= 25: 
             # BAD EVENT (Horde/Chopper) - Sets up Reward
-            etype = "chopper" if random.random() > 0.5 else "horde"
+            etype = random.choice(["chopper", "horde", "alarm"])
             
             if etype == "chopper":
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Air asset 4-2 is smoking... going down!"])
                 run_rcon(["chopper"])
-                state["pendingReward"] = "weapon" # Choppers drop guns
+                state["pendingReward"] = random.choice(["weapon", "medical"])
                 
-            else: # Horde
-                count = random.randint(10, 20)
+            elif etype == "horde":
+                count = random.randint(15, 30)
                 if target_player:
                     run_rcon(["msg", f"{random.choice(theme['prefixes'])} Massive bio-signal convergence detected near {target_player}."])
                     run_rcon(["horde", str(count), target_player])
-                    state["pendingReward"] = "vehicle" # "Convoy overrun" implies vehicle left behind
+                    state["pendingReward"] = random.choice(["vehicle", "supply"])
                 else:
                     run_rcon(["msg", f"{random.choice(theme['prefixes'])} Massive bio-signals migrating across the sector."])
-                    # No target, no horde spawn, just flavor + noise
                     run_rcon(["gunshot"])
+                    
+            elif etype == "alarm":
+                run_rcon(["msg", f"{random.choice(theme['prefixes'])} Security system breach. Building alarms triggered."])
+                run_rcon(["alarm"])
+                state["pendingReward"] = random.choice(["supply", "weapon"])
             
             state["lastEventTs"] = now
             print(f"ACTION: Bad Event {etype}")
 
-        elif event_roll <= 60:
+        elif event_roll <= 55:
             # WEATHER EVENT
-            wtype = "storm" if random.random() > 0.7 else "rain"
+            wtype = random.choice(["storm", "rain", "clear"])
             if wtype == "storm":
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Severe weather alert. Seek shelter immediately."])
-                run_rcon(["storm", "1"]) # 1 hour storm
-            else:
+                run_rcon(["storm", "1"])
+            elif wtype == "rain":
+                intensity = random.randint(30, 80)
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Precipitation increasing. Visibility dropping."])
-                run_rcon(["rain", "start"])
+                run_rcon(["rain", "start", str(intensity)])
+            else:
+                run_rcon(["msg", f"{random.choice(theme['prefixes'])} Weather clearing. Visibility improving."])
+                run_rcon(["clear"])
             
             state["lastEventTs"] = now
             print(f"ACTION: Weather {wtype}")
