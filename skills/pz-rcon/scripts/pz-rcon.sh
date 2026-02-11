@@ -61,6 +61,25 @@ case "${1:-help}" in
         rcon_cmd "servermsg \"$CLEAN_MSG\""
         ;;
 
+    # Direct message to specific player
+    pm|whisper|tell)
+        shift
+        if [ -z "$2" ]; then echo "Usage: $0 pm <username> <message>"; exit 1; fi
+        USERNAME="$1"
+        shift
+        MESSAGE="$*"
+        CLEAN_MSG=$(printf "%s" "$MESSAGE" | LC_ALL=C tr -cd '\11\12\15\40-\176')
+        CLEAN_MSG=${CLEAN_MSG//$'\n'/ }
+        CLEAN_MSG=${CLEAN_MSG//$'\r'/ }
+        CLEAN_MSG=${CLEAN_MSG:0:180}
+        if [ -z "$CLEAN_MSG" ]; then
+            echo "Error: message is empty after sanitization (ASCII-only)."
+            exit 1
+        fi
+        # PZ RCON: servermsg with "to:username" prefix sends private message
+        rcon_cmd "servermsg \"$CLEAN_MSG\" -u \"$USERNAME\""
+        ;;
+
     # Items
     give|item)
         shift

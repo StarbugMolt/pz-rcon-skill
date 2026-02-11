@@ -332,6 +332,7 @@ def main():
             etype = random.choice(["chopper", "horde", "alarm"])
             
             if etype == "chopper":
+                # Warn all players about helicopter
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Air asset 4-2 is smoking... going down!"])
                 run_rcon(["chopper"])
                 state["pendingReward"] = random.choice(["weapon", "medical"])
@@ -339,7 +340,9 @@ def main():
             elif etype == "horde":
                 count = random.randint(15, 30)
                 if target_player:
-                    run_rcon(["msg", f"{random.choice(theme['prefixes'])} Massive bio-signal convergence detected near {target_player}."])
+                    # Warn the targeted player directly + broadcast
+                    run_rcon(["msg", f"{random.choice(theme['prefixes'])} ALERT: Massive bio-signal convergence detected!"])
+                    run_rcon(["pm", target_player, f"DIRECTOR WARNING: Horde of {count} detected converging on YOUR position. Prepare for contact!"])
                     run_rcon(["horde", str(count), target_player])
                     # Horde is highest threat -> best rewards (vehicle or weapon only)
                     state["pendingReward"] = random.choice(["vehicle", "weapon"])
@@ -348,7 +351,10 @@ def main():
                     run_rcon(["gunshot"])
                     
             elif etype == "alarm":
+                # Alarms attract zombies - warn players
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Security system breach. Building alarms triggered."])
+                if target_player:
+                    run_rcon(["pm", target_player, "DIRECTOR: Alarm triggered near you. Expect increased activity."])
                 run_rcon(["alarm"])
                 # Alarm is moderate threat -> medical or weapon
                 state["pendingReward"] = random.choice(["medical", "weapon"])
