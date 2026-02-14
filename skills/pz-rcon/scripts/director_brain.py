@@ -8,6 +8,84 @@ import subprocess
 
 # --- CONFIGURATION ---
 STATE_FILE = os.path.join(os.path.dirname(__file__), "../state/narrative-state.json")
+PLAYER_REGISTRY_FILE = os.path.join(os.path.dirname(__file__), "../state/player-registry.json")
+
+# --- PLAYER GREETING SYSTEM ---
+def get_player_info(player_name):
+    """Get player info from registry."""
+    try:
+        with open(PLAYER_REGISTRY_FILE, 'r') as f:
+            registry = json.load(f)
+        return registry.get("players", {}).get(player_name, None)
+    except:
+        return None
+
+def get_player_honorific(player_name):
+    """Get player honorific (sir/ma'am/survivor)."""
+    info = get_player_info(player_name)
+    if info and "honorific" in info:
+        return info["honorific"]
+    return "survivor"
+
+def get_visit_tier(visit_count):
+    """Determine player tier based on visit count."""
+    if visit_count <= 1:
+        return "new"
+    elif visit_count <= 5:
+        return "returning"
+    elif visit_count <= 10:
+        return "veteran"
+    else:
+        return "oldtimer"
+
+def generate_player_greeting(player_name):
+    """Generate personalized greeting based on player history."""
+    info = get_player_info(player_name)
+    if not info:
+        # Fallback if no info
+        return f"Welcome to Muldraugh, survivor. You'll need to learn fast."
+    
+    visits = info.get("visitCount", 1)
+    tier = get_visit_tier(visits)
+    
+    greetings = {
+        "new": [
+            f"New arrival detected. Welcome to the apocalypse, {player_name}.",
+            f"Unregistered signal... {player_name}? Welcome to Muldraugh. Good luck.",
+            f"First time in sector, {player_name}? The zombies are hungry."
+        ],
+        "returning": [
+            f"{player_name}! Back for more? The horde missed you. Probably.",
+            f"Welcome back, {player_name}. Status: Still alive. That's something.",
+            f"{player_name} returns. Let's hope you last longer this time."
+        ],
+        "veteran": [
+            f"Veteran survivor {player_name} checking in. The undead await.",
+            f"{player_name}, your survival instincts are noted. Good hunting.",
+            f"Welcome back, {player_name}. Another day in paradise."
+        ],
+        "oldtimer": [
+            f"Legend {player_name} lives! They said you'd be zombie food by now.",
+            f"{player_name}. If anyone can survive this, it's you. Welcome back.",
+            f"The Director remembers you, {player_name}. Let's make it another successful day."
+        ]
+    }
+    
+    return random.choice(greetings[tier])
+
+def handle_player_join_event(new_players):
+    """Handle new player join events with personalized greetings."""
+    if not new_players:
+        return []
+    
+    messages = []
+    for player in new_players:
+        greeting = generate_player_greeting(player)
+        messages.append(greeting)
+        # Send as private message to the player
+        run_rcon(["pm", player, greeting])
+    
+    return messages
 
 # --- EXPANDED PLOT THEMES ---
 THEMES = {
@@ -297,6 +375,26 @@ def main():
         print(f"Error fetching players: {e}", file=sys.stderr)
 
     target_player = random.choice(players) if players else None
+
+    # 2.5. Handle Player Join Events (Personalized Greetings)
+    delta_event = os.environ.get("PZ_DELTA_EVENT", "")
+    if delta_event.startswith("NEW:"):
+        new_players = delta_event.replace("NEW:", "").split(",")
+        # Filter empty strings
+        new_players = [p.strip() for p in new_players if p.strip()]
+        if new_players:
+            print(f"New player(s) detected: {new_players}")
+            join_messages = handle_player_join_event(new_players)
+            # Add to history to avoid repeats
+            for msg in join_messages:
+                if msg not in state.get("history", []):
+                    state.setdefault("history", []).append(msg)
+                    if len(state["history"]) > 5:
+                        state["history"].pop(0)
+            # Update last action timestamp
+            state["lastActionTs"] = now
+            save_state(state)
+            return  # Exit early after greeting
 
     # 3. Process Pending Rewards (High Priority)
     if state.get("pendingReward") and target_player:
