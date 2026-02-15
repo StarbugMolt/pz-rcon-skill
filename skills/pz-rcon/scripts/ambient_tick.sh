@@ -10,6 +10,22 @@ SKILL_DIR="$(cd "$DIR/.." && pwd)"
 STATE_FILE="$SKILL_DIR/state/narrative-state.json"
 PLAYER_DELTA_FILE="$SKILL_DIR/state/player-delta.json"
 PLAYER_REGISTRY_FILE="$SKILL_DIR/state/player-registry.json"
+LOG_DIR="$SKILL_DIR/logs"
+LOG_FILE="$LOG_DIR/ambient-$(date +%Y-%m-%d).log"
+
+# Logging function with daily rotation (keep 7 days)
+log() {
+    mkdir -p "$LOG_DIR"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
+}
+rotate_logs() {
+    find "$LOG_DIR" -name "ambient-*.log" -mtime +7 -delete 2>/dev/null || true
+}
+
+# Run log rotation on each execution
+rotate_logs
+
+log "=== Ambient tick started ==="
 
 # Helper: Initialize player registry if missing
 init_registry() {
@@ -30,9 +46,9 @@ get_online_players() {
     return
   fi
   
-  # Extract player names after the colon
-  echo "$out" | sed -n 's/Players connected ([0-9]*): //p' | tr ',' '\n' | while read -r name; do
-    name=$(echo "$name" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  # Extract player names after the colon (handle multi-line output and leading hyphens)
+  echo "$out" | tr '\n' ' ' | sed 's/  */ /g' | sed -n 's/Players connected ([0-9]*): //p' | tr ',' '\n' | while read -r name || [ -n "$name" ]; do
+    name=$(echo "$name" | sed 's/^[[:space:]]*-*//;s/[[:space:]]*$//')
     [ -n "$name" ] && echo "$name"
   done
 }
@@ -131,29 +147,41 @@ except: pass
   # Save current state
   local now
   now=$(date +%s)
-  python3 - "$now" "${current_players[@]:-}" "${new_players[@]:-}" "${left_players[@]:-}" << 'PYEOF'
-import json, sys, sys
-now = int(sys.argv[1])
-current = [p for p in sys.argv[2:] if p]
-new = [p for p in sys.argv[2+len(current):] if p]
-left = [p for p in sys.argv[2+len(current)+len(new):] if p]
+  
+  # Build properly delimited string for parsing
+  local current_str new_str left_str
+  current_str="$(IFS=,; echo "${current_players[*]:-}")"
+  new_str="$(IFS=,; echo "${new_players[*]:-}")"
+  left_str="$(IFS=,; echo "${left_players[*]:-}")"
+  
+  python3 << PYEOF
+import json
+
+current = "${current_str}".split(",") if "${current_str}" else []
+new = "${new_str}".split(",") if "${new_str}" else []
+left = "${left_str}".split(",") if "${left_str}" else []
+
+# Clean empty strings
+current = [p for p in current if p]
+new = [p for p in new if p]
+left = [p for p in left if p]
 
 data = {
-  "previousOnline": current,
-  "lastCheckTs": now,
-  "newPlayers": new,
-  "leftPlayers": left
+  "previousOnline": list(set(current)),
+  "lastCheckTs": ${now},
+  "newPlayers": list(set(new)),
+  "leftPlayers": list(set(left))
 }
 with open("/home/starbugmolt/.openclaw/workspace/skills/pz-rcon/state/player-delta.json", "w") as f:
   json.dump(data, f, indent=2)
 
-# Print delta events
+# Print delta events - VERY CLEAR FORMAT
 if new:
-  print(f"NEW:{','.join(new)}")
+  print(f">>> JOIN:{','.join(new)}")
 if left:
-  print(f"LEFT:{','.join(left)}")
+  print(f">>> LEAVE:{','.join(left)}")
 if not new and not left:
-  print("NO_CHANGE")
+  print(">>> NO_CHANGE")
 PYEOF
   
   # Update registry
@@ -165,12 +193,12 @@ PYEOF
 # MAIN
 # ============================================================================
 
-echo "Running ambient tick..."
-
+log "Fetching current players from RCON..."
 # 1. Get current players
 mapfile -t CURRENT_PLAYERS < <(get_online_players)
 COUNT=${#CURRENT_PLAYERS[@]}
 
+log "Players found: $COUNT (${CURRENT_PLAYERS[*]:-none})"
 echo "Players found: $COUNT"
 
 # 2. Handle empty server
@@ -179,23 +207,52 @@ if [ $COUNT -eq 0 ]; then
     echo "Players dropped to 0. Resetting narrative state."
     rm -f "$STATE_FILE"
   fi
-  # Clear delta file
-  python3 - "$(date +%s)" << 'PYEOF'
-import json, sys
-with open("/home/starbugmolt/.openclaw/workspace/skills/pz-rcon/state/player-delta.json", "w") as f:
-  json.dump({"previousOnline": [], "lastCheckTs": int(sys.argv[1])}, f)
+  
+  # Detect who LEFT before clearing
+  python3 << 'PYEOF'
+import json
+import os
+
+delta_file = "/home/starbugmolt/.openclaw/workspace/skills/pz-rcon/state/player-delta.json"
+now = 0
+
+try:
+    with open(delta_file, "r") as f:
+        prev_data = json.load(f)
+    previous_online = prev_data.get("previousOnline", [])
+    now = prev_data.get("lastCheckTs", 0)
+except:
+    previous_online = []
+
+# Save with left players detected
+data = {
+    "previousOnline": [],
+    "lastCheckTs": now,
+    "newPlayers": [],
+    "leftPlayers": list(set(previous_online))
+}
+
+with open(delta_file, "w") as f:
+    json.dump(data, f, indent=2)
+
+# Print delta if anyone left - VERY CLEAR FORMAT
+if data["leftPlayers"]:
+    print(f">>> LEAVE:{','.join(data['leftPlayers'])}")
+else:
+    print(">>> NO_CHANGE")
 PYEOF
+  
   echo "No players online. Director sleeping."
   exit 0
 fi
 
 # 3. Detect player changes
 echo "Current players: ${CURRENT_PLAYERS[*]}"
+log "Detecting player delta..."
 DELTA_EVENT=$(detect_player_delta "${CURRENT_PLAYERS[@]}")
 echo "Delta event: $DELTA_EVENT"
+log "Delta event: $DELTA_EVENT"
 
-# 4. Run Director Brain
-export PZ_DELTA_EVENT="$DELTA_EVENT"
-export PZ_ONLINE_PLAYERS="$(IFS=,; echo "${CURRENT_PLAYERS[*]}")"
-echo "Players online ($COUNT). Running Director Brain..."
-python3 "$DIR/director_brain.py"
+# 4. AI Director now handles narrative via cron - no more static script
+log "Player count: $COUNT. AI Director will generate radio chatter."
+echo "AI Director handling narrative (cron-based)."
