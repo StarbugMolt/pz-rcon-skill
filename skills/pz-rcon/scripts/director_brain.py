@@ -82,8 +82,8 @@ def handle_player_join_event(new_players):
     for player in new_players:
         greeting = generate_player_greeting(player)
         messages.append(greeting)
-        # Send as private message to the player
-        run_rcon(["pm", player, greeting])
+        # Send as broadcast (PZ RCON doesn't support PM)
+        run_rcon(["msg", f"[{player}] {greeting}"])
     
     return messages
 
@@ -411,12 +411,32 @@ def main():
         save_state(state)
         return
 
-    # 4. Roll for New Event
-    # Cooldown: 20 mins (1200s)
+    # 4. Mini-Narration (every tick when players online)
+    # Small flavor messages every tick - no cooldown
+    if players and random.randint(1, 100) <= 90:  # 90% chance per tick
+        mini_narration = [
+            f"{random.choice(theme['prefixes'])} Radio check... all stations reporting in.",
+            f"{random.choice(theme['prefixes'])} Background radiation levels: nominal.",
+            f"{random.choice(theme['prefixes'])} Unidentified movement detected 2 clicks north.",
+            f"{random.choice(theme['prefixes'])} Reminder: Electronics fail. Stay alert.",
+            f"{random.choice(theme['prefixes'])} Weather satellite: clear skies expected.",
+            f"{random.choice(theme['prefixes'])} Packet from Fort Red: 'Hold the line.'",
+            f"{random.choice(theme['prefixes'])} Rumor: there's a supply cache near the river.",
+            f"{random.choice(theme['prefixes'])} Auto-scan complete. No new signatures."
+        ]
+        msg = random.choice(mini_narration)
+        run_rcon(["msg", msg])
+        print(f"MINI-NARRATION: {msg}")
+        state["lastActionTs"] = now
+        save_state(state)
+        return
+
+    # 5. Roll for Major Event
+    # Cooldown: 10 mins (600s)
     time_since_last = now - state.get("lastEventTs", 0)
-    chance = 20 # 20%
+    chance = 25 # 25%
     
-    if time_since_last < 1200:
+    if time_since_last < 600:
         chance = 0 # Cooldown active
     
     roll = random.randint(1, 100)
@@ -440,7 +460,7 @@ def main():
                 if target_player:
                     # Warn the targeted player directly + broadcast
                     run_rcon(["msg", f"{random.choice(theme['prefixes'])} ALERT: Massive bio-signal convergence detected!"])
-                    run_rcon(["pm", target_player, f"DIRECTOR WARNING: Horde of {count} detected converging on YOUR position. Prepare for contact!"])
+                    run_rcon(["msg", f"[{target_player}] DIRECTOR WARNING: Horde of {count} detected converging on YOUR position. Prepare for contact!"])
                     run_rcon(["horde", str(count), target_player])
                     # Horde is highest threat -> best rewards (vehicle or weapon only)
                     state["pendingReward"] = random.choice(["vehicle", "weapon"])
@@ -452,7 +472,7 @@ def main():
                 # Alarms attract zombies - warn players
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Security system breach. Building alarms triggered."])
                 if target_player:
-                    run_rcon(["pm", target_player, "DIRECTOR: Alarm triggered near you. Expect increased activity."])
+                    run_rcon(["msg", f"[{target_player}] DIRECTOR: Alarm triggered near you. Expect increased activity."])
                 run_rcon(["alarm"])
                 # Alarm is moderate threat -> medical or weapon
                 state["pendingReward"] = random.choice(["medical", "weapon"])
