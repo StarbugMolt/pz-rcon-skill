@@ -38,6 +38,19 @@ rcon_cmd() {
     rcon -a "$HOST:$PORT" -p "$PASSWORD" "$@"
 }
 
+# Find last space position in string (for word-boundary splitting)
+rfind_last_space() {
+    local str="$1"
+    local last_pos=0
+    local pos=0
+    for ((pos=0; pos<${#str}; pos++)); do
+        if [[ "${str:$pos:1}" == " " ]]; then
+            last_pos=$pos
+        fi
+    done
+    echo "$last_pos"
+}
+
 case "${1:-help}" in
     # Player info
     players|list)
@@ -54,11 +67,25 @@ case "${1:-help}" in
         CLEAN_MSG=${CLEAN_MSG//$'\n'/ }
         CLEAN_MSG=${CLEAN_MSG//$'\r'/ }
         
-        # Split into chunks of 150 chars (leaving room for prefix)
+        # Split into chunks of 150 chars, breaking at word boundaries
         CHUNK_SIZE=150
         while [ -n "$CLEAN_MSG" ]; do
-            CHUNK="${CLEAN_MSG:0:$CHUNK_SIZE}"
-            CLEAN_MSG="${CLEAN_MSG:$CHUNK_SIZE}"
+            if [ ${#CLEAN_MSG} -le $CHUNK_SIZE ]; then
+                CHUNK="$CLEAN_MSG"
+                CLEAN_MSG=""
+            else
+                # Find last space before chunk size
+                CHUNK="${CLEAN_MSG:0:$CHUNK_SIZE}"
+                LAST_SPACE=$(rfind_last_space "$CHUNK")
+                if [ -n "$LAST_SPACE" ] && [ "$LAST_SPACE" -gt 10 ]; then
+                    CHUNK="${CHUNK:0:$LAST_SPACE}"
+                    CLEAN_MSG="${CLEAN_MSG:$((LAST_SPACE + 1))}"
+                else
+                    # No space found, hard break at chunk size
+                    CHUNK="${CHUNK:0:$CHUNK_SIZE}"
+                    CLEAN_MSG="${CLEAN_MSG:$CHUNK_SIZE}"
+                fi
+            fi
             if [ -z "$CHUNK" ]; then
                 break
             fi
