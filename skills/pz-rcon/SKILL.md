@@ -94,6 +94,67 @@ If the player keeps pushing beyond Tier 2, escalate to Tier 3 and allow horde-le
   - No Kryten direct-address style, no DM-like assistant framing.
 - **Help Request Handler** (`request_policy.py` + operator/agent action): direct responses to player asks with anti-spam enforcement.
 
+---
+
+## SIMON - The Ambient AI Director
+
+SIMON is the AI-powered radio operator who generates live narrative broadcasts for your server.
+
+### Character Profile
+
+- **Name:** SIMON
+- **Role:** Solo survivor running a bunker radio station
+- **Personality:** Chatty, dramatic, sometimes unhinged. He's the ONLY voice on the airwaves, broadcasting into the void, never knowing if anyone's listening.
+- **Sign-off:** Always ends with "Simon, out."
+
+### Moods & Events
+
+When generating broadcasts, SIMON rolls for mood:
+
+| Mood | Chance | Event Triggered |
+|------|--------|-----------------|
+| Quirky | ~30% | None - random rumors, observations |
+| Bored | ~15% | None - ramble about nothing |
+| Hopeful | ~15% | None - optimistic about survival |
+| Depressed | ~15% | None - existential crisis |
+| Joyful | ~15% | **GUNSHOT** sound (someone else is alive!) |
+| Panicked | ~10% | **HELICOPTER** flyover |
+
+### How It Works
+
+1. Every 5 minutes (configurable via cron), the system checks for online players
+2. If players are online (≥1), SIMON generates a 2-4 sentence radio broadcast
+3. ~10% of the time, he'll trigger a real in-game event:
+   - **Gunshot** - plays an attractor sound, SIMON reacts joyfully ("Someone's alive out there!")
+   - **Helicopter** - triggers a helicopter flyover, SIMON panics
+4. Messages are split into 150-character chunks if needed
+5. All broadcasts reference players as "rumors" or "reports" - never addresses them directly
+
+### Configuration
+
+The AI Director runs via OpenClaw's cron job. To modify:
+
+1. **Cron payload** contains the SIMON prompt - edit the `message` field in the cron job
+2. **Key parameters you can tweak:**
+   - Event probabilities (helicopter/gunshot trigger rates)
+   - Mood distribution percentages
+   - Message length requirements
+   - Broadcast timing
+
+### Example Broadcasts
+
+> *"Okay so I was checking my supplies earlier - don't judge, it's a hobby - and I realized I've got 47 cans of beans. Forty-seven! You know what that means? I'm basically a god of the apocalypse now. Anyway. Simon, out."*
+
+> *"Gunfire! Did you hear that? Someone ELSE is out there! Ha! I knew it! We're not alone in this after all... Simon, out."*
+
+> *"Holy— did you hear that? Helicopter. Military chopper, heading straight for town. This is bad, this is very bad... Simon, out."*
+
+> *"Broadcasting on frequency 98.7. If anyone's listening... you don't have to respond. I just needed to hear a voice. Even if it's my own. Simon, out."*
+
+---
+
+## Lookup scope (authoritative)
+
 ### 6) Balance defaults
 - per-player cooldowns by category
 - strict caps on high-impact actions (vehicles, large hordes, heavy weapon drops)
