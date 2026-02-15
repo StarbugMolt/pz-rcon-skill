@@ -53,12 +53,18 @@ case "${1:-help}" in
         CLEAN_MSG=$(printf "%s" "$*" | LC_ALL=C tr -cd '\11\12\15\40-\176')
         CLEAN_MSG=${CLEAN_MSG//$'\n'/ }
         CLEAN_MSG=${CLEAN_MSG//$'\r'/ }
-        CLEAN_MSG=${CLEAN_MSG:0:180}
-        if [ -z "$CLEAN_MSG" ]; then
-            echo "Error: message is empty after sanitization (ASCII-only)."
-            exit 1
-        fi
-        rcon_cmd "servermsg \"$CLEAN_MSG\""
+        
+        # Split into chunks of 150 chars (leaving room for prefix)
+        CHUNK_SIZE=150
+        while [ -n "$CLEAN_MSG" ]; do
+            CHUNK="${CLEAN_MSG:0:$CHUNK_SIZE}"
+            CLEAN_MSG="${CLEAN_MSG:$CHUNK_SIZE}"
+            if [ -z "$CHUNK" ]; then
+                break
+            fi
+            rcon_cmd "servermsg \"$CHUNK\""
+            sleep 0.5  # Brief pause between messages
+        done
         ;;
 
     # Direct message to specific player
