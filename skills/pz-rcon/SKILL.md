@@ -113,12 +113,13 @@ When generating broadcasts, SIMON rolls for mood:
 
 | Mood | Chance | Event Triggered |
 |------|--------|-----------------|
-| Quirky | ~30% | None - random rumors, observations |
+| Quirky | ~25% | None - random rumors, observations |
 | Bored | ~15% | None - ramble about nothing |
 | Hopeful | ~15% | None - optimistic about survival |
-| Depressed | ~15% | None - existential crisis |
-| Joyful | ~15% | **GUNSHOT** sound (someone else is alive!) |
-| Panicked | ~10% | **HELICOPTER** flyover |
+| Joyful | ~20% | **GUNSHOT** sound (someone else is alive!) |
+| Panicked | ~15% | **HELICOPTER** flyover |
+| Depressed | ~10% | None - existential crisis |
+| Ambient | ~10% | **ALARM** (car/building) or **THUNDER** |
 
 ### How It Works
 
