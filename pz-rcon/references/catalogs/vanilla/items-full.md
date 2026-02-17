@@ -18,6 +18,7 @@
 | `Base.Antibiotics` | Antibiotics | Infection cure |
 | `Base.Machete` | Machete | Best melee weapon |
 | `Base.Axe` | Axe | Wood chopping + combat |
+| `Base.Sledgehammer` | Sledgehammer | Heavy demolition |
 
 ---
 
@@ -96,7 +97,11 @@
 | `Base.Plushabug` | Plumpabug | Bug plush |
 | `Base.FluffyfootBunny` | Fluffyfoot | Bunny plush |
 | `Base.Rubberducky` | Rubber Duck | Bath time |
-| `Base.KeyRing_RubberDuck` | Rubber Duck Keyring | ...
+| `Base.KeyRing_RubberDuck` | Rubber Duck Keyring | ... |
+| `Base.DogFood` | Dog Food | For your zombie pooch |
+| `Base.Disinfectant` | Disinfectant | Smelly cleanup |
+| `Base.Worms` | Worms | Fishing bait |
+| `Base.RottenFood` | Rotten Food | Yuck |
 
 ---
 
