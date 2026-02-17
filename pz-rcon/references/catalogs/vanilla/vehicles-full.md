@@ -1,30 +1,87 @@
-# Vanilla Vehicle Script Reference (Project Zomboid)
+# Vanilla Vehicle Scripts (Project Zomboid)
 
-> Scope: **vanilla only** (no mods)
-> Format for RCON `addvehicle`: vehicle script string (usually `Base.*`)
+> Format: `Base.VehicleScript` for RCON `addvehicle`
 
-## Common Vanilla Vehicle Scripts
-- `Base.CarNormal`
-- `Base.SmallCar`
-- `Base.SmallCar02`
-- `Base.CarStationWagon`
-- `Base.PickUpVan`
-- `Base.PickUpTruck`
-- `Base.Van`
-- `Base.VanSeats`
-- `Base.VanAmbulance`
-- `Base.PickUpVanLights`
-- `Base.StepVan`
-- `Base.SUV`
-- `Base.ModernCar`
-- `Base.OffRoad`
+---
 
-## Service / Special
-- `Base.PickUpTruckLightsFire`
-- `Base.PickUpVanLightsPolice`
-- `Base.VanAmbulance`
+## Cars
 
-## Notes
-- Not every map cell accepts spawning; invalid terrain gives "Invalid position".
-- For best success, player should stand on open road/parking tiles.
-- Fuel/condition/keys are not guaranteed by basic `addvehicle` alone.
+| Script | Name |
+|--------|------|
+| `Base.CarNormal` | Nyala |
+| `Base.SmallCar | Dart |
+| `Base.StationWagon` | Wagon |
+| `Base.PickUpTruck` | D6 |
+| `Base.PickUpVan` | Bulldogger |
+| `Base.StepVan` | Step Van |
+| `Base.Van` | Valuline |
+
+## Emergency
+
+| Script | Name |
+|--------|------|
+| `Base.VanAmbulance` - Ambulance
+| `Base.PickUpVanLightsPolice` - Police  
+| `Base.PickUpTruckLightsFire` - Fire Truck
+
+## Spawnable Vehicles
+
+### By Class
+
+| Script | Type |
+|--------|------|
+| `Base.CarNormal` | Sedan |
+| `Base.SmallCar` | Compact |
+| `Base.StationWagon` | Estate |
+| `Base.PickUpTruck` | Pickup |
+| `Base.PickUpVan` | Van |
+| `Base.StepVan` | Step Van |
+| `Base.ModernCar` | Modern |
+| `Base.SUV` | SUV |
+| `Base.OffRoad` | Offroad |
+| `Base.VanAmbulance` | Ambulance |
+| `Base.VanSeats` | Passenger Van |
+| `Base.Bicycle` | Bicycle |
+| `Base.MotorBike` | Motorcycle |
+| `Base.MotorBikeSidecar` | Motorcycle w/ Sidecar |
+
+---
+
+## Full List
+
+```
+Base.Bicycle
+Base.Moped
+Base.MotorBike
+Base.MotorBikeSidecar
+Base.Minibike
+Base.PickUpTruck
+Base.PickUpVan
+Base.StepVan
+Base.Van
+Base.VanAmbulance
+Base.VanSeats
+Base.CarNormal
+Base.SmallCar
+Base.StationWagon
+Base.ModernCar
+Base.SUV
+Base.OffRoad
+Base.SportsCar
+Base.LuxuryCar
+Base.Trailer
+Base.Trailer_Horsebox
+Base.Trailer_Livestock
+```
+
+---
+
+## Spawning Tips
+
+```
+addvehicle {script} 0 0 0
+```
+
+- Use open road/parking tiles
+- May need to /vehiclename {script} or RCON 
+- Keys + fuel not guaranteed
