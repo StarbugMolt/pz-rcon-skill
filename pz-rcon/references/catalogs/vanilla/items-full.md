@@ -1,140 +1,154 @@
-# Vanilla Item Reference (Project Zomboid Build 42.x)
+# Curated Item Lists (Project Zomboid Build 42)
 
-> Scope: vanilla only (no mods)
-> Format for RCON: `Module.Item` (typically Base.)
-
----
-
-## 🔫 FIREARMS
-
-### Handguns
-- `Base.Pistol` - Pistol
-- `Base.Pistol2` - Pistol2
-- `Base.Revolver` - Revolver
-- `Base.Revolver_Long` - Revolver Long
-- `Base.Revolver_Short` - Revolver Short
-
-### Rifles
-- `Base.AssaultRifle` - Assault Rifle
-- `Base.HuntingRifle` - Hunting Rifle
-- `Base.VarmintRifle` - Varmint Rifle
-
-### Shotguns
-- `Base.Shotgun` - Shotgun
-- `Base.DoubleBarrelShotgun` - Double Barrel Shotgun
-- `Base.ShotgunSawnoff` - Sawn-off Shotgun
+> Curated for AI Director / RCON item spawning
 
 ---
 
-## 🎯 AMMO
+## ⭐ EXCEPTIONAL (Top Tier Loot)
 
-### Rifle Ammo
-- `Base.556Box` - 5.56x45mm Box
-- `Base.556Bullets` - 5.56x45mm Rounds
-- `Base.556Carton` - 5.56x45mm Carton
-- `Base.308Box` - 7.62x51mm Box  
-- `Base.308Bullets` - 7.62x51mm Rounds
-- `Base.308Carton` - 7.62x51mm Carton
-- `Base.3030Box` - .30-30 Box
-- `Base.3030Bullets` - .30-30 Rounds
-- `Base.3030Carton` - .30-30 Carton
-
-### Handgun Ammo
-- `Base.9mmBox` - 9x19mm Box
-- `Base.Bullets9mm` - 9x19mm Rounds
-- `Base.Bullets9mmCarton` - 9x19mm Carton
-- `Base.Bullets38Box` - .38 Special Box
-- `Base.Bullets38` - .38 Special Rounds
-- `Base.Bullets38Carton` - .38 Special Carton
-- `Base.Bullets357Box` - .357 Magnum Box
-- `Base.Bullets357` - .357 Magnum Rounds
-- `Base.Bullets357Carton` - .357 Magnum Carton
-- `Base.Bullets44Box` - .44 Magnum Box
-- `Base.Bullets44` - .44 Magnum Rounds
-- `Base.Bullets44Carton` - .44 Magnum Carton
-- `Base.Bullets45Box` - .45 ACP Box
-- `Base.Bullets45` - .45 ACP Rounds
-- `Base.Bullets45Carton` - .45 ACP Carton
-
-### Shotgun Shells
-- `Base.ShotgunShellsBox` - 12g Box
-- `Base.ShotgunShells` - 12g Rounds  
-- `Base.ShotgunShellsCarton` - 12g Carton
-
-### Magazines
-- `Base.9mmClip` - M9 Magazine
-- `Base.44Clip` - B-F Magazine
-- `Base.45Clip` - M1911 Auto Magazine
-- `Base.556Clip` - M16 Magazine
-- `Base.M14Clip` - M1A Magazine
+| Item ID | Name | Notes |
+|---------|------|-------|
+| `Base.AssaultRifle` | Assault Rifle | Best automatic |
+| `Base.HuntingRifle` | Hunting Rifle | Reliable |
+| `Base.Shotgun` | Shotgun | Close range king |
+| `Base.Bag_Military` | Military Pack | Huge storage |
+| `Base.Bag_ALICEpack` | ALICE Pack | Classic survivor |
+| `Base.Generator` | Generator | Base power |
+| `Base.FirstAidKit` | First Aid Kit | Life saver |
+| `Base.Antibiotics` | Antibiotics | Infection cure |
+| `Base.Machete` | Machete | Best melee weapon |
+| `Base.Axe` | Axe | Wood chopping + combat |
 
 ---
 
-## 🔪 MELEE
+## 🔥 GREAT (High Value)
 
-- `Base.Axe` - Axe
-- `Base.Crowbar` - Crowbar  
-- `Base.BaseballBat` - Baseball Bat
-- `Base.Hammer` - Hammer
-- `Base.KitchenKnife` - Kitchen Knife
-- `Base.Machete` - Machete
-- `Base.Cleaver` - Cleaver
-- `Base.HuntingKnife` - Hunting Knife
-- `Base.GolfClub` - Golf Club
-
----
-
-## 💊 MEDICAL
-
-- `Base.AlcoholBandage` - Sterile Bandage
-- `Base.AlcoholWipes` - Alcohol Wipes  
-- `Base.Bandage` - Bandage
-- `Base.BandageDirty` - Dirty Bandage
-- `Base.Disinfectant` - Disinfectant
-- `Base.FirstAidKit` - First Aid Kit
-- `Base.Pills` - Pills
-- `Base.Painkillers` - Painkillers
-- `Base.Antibiotics` - Antibiotics  
-- `Base.SutureNeedle` - Suture Needle
+| Item ID | Name | Notes |
+|---------|------|-------|
+| `Base.Pistol` | Pistol | Reliable sidearm |
+| `Base.Revolver` | Revolver | .357 Magnum |
+| `Base.VarmintRifle` | Varmint Rifle | 5.56mm |
+| `Base.DoubleBarrelShotgun` | Double Barrel | 2x boom |
+| `Base.Bag_SurvivorBag` | Survivor Bag | Good capacity |
+| `Base.Bag_NormalHikingBag` | Hiking Pack | Mid-tier |
+| `Base.Pills` | Pills | Pain management |
+| `Base.AlcoholBandage` | Sterile Bandage | Wound care |
+| `Base.Lighter` | Lighter | Fire starting |
+| `Base.Matches` | Matches | Backup fire |
+| `Base.Saw` | Saw | Metal/wood |
+| `Base.Wrench` | Wrench | Mechanic tool |
+| `Base.Screwdriver` | Screwdriver | Repair tool |
+| `Base.Tent` | Tent | Shelter |
+| `Base.SleepingBag` | Sleeping Bag | Rest |
 
 ---
 
-## 🎒 BAGS
+## ✅ GOOD (Useful)
 
-- `Base.Bag_ALICEpack` - ALICE Pack
-- `Base.Bag_DuffelBag` - Duffel Bag  
-- `Base.Bag_NormalHikingBag` - Hiking Backpack
-- `Base.Bag_Schoolbag` - Small Backpack
-- `Base.Bag_Military` - Military Backpack
-- `Base.Bag_SurvivorBag` - Survivor Bag
-
----
-
-## 🔧 TOOLS
-
-- `Base.Screwdriver` - Screwdriver  
-- `Base.Wrench` - Wrench
-- `Base.Saw` - Saw
-- `Base.Generator` - Generator
-- `Base.Lighter` - Lighter
-- `Base.Matches` - Matches
-
----
-
-## 🐄 ANIMALS (spawnable)
-
-- `Base.Cow` - Cow
-- `Base.Pig` - Pig
-- `Base.Sheep` - Sheep  
-- `Base.Chicken` - Chicken
-- `Base.Turkey` - Turkey
-- `Base.Rabbit` - Rabbit
-- `Base.Deer` - Deer
-- `Base.Rat` - Rat
+| Item ID | Name | Notes |
+|---------|------|-------|
+| `Base.Pistol2` | Pistol2 | Alternate sidearm |
+| `Base.Revolver_Short` | Short Revolver | Backup |
+| `Base.Crowbar` | Crowbar | Multi-tool |
+| `Base.BaseballBat` | Baseball Bat | Easy to find |
+| `Base.Hammer` | Hammer | Construction |
+| `Base.KitchenKnife` | Kitchen Knife | Common weapon |
+| `Base.GolfClub` | Golf Club | Sports weapon |
+| `Base.Bag_Schoolbag` | School Bag | Small pack |
+| `Base.Bag_DuffelBag` | Duffel Bag | Molle compatible |
+| `Base.Disinfectant` | Disinfectant | Cleaning |
+| `Base.Bandage` | Bandage | Basic wound care |
+| `Base.Compass` | Compass | Navigation |
+| `Base.CampfireKit` | Campfire | Cooking |
+| `Base.FishingNet` | Fishing Net | Food source |
+| `Base.Hook` + `Base.Bait` | Fishing | Food source |
 
 ---
 
-> ⚠️ Build 42.14 Changes
-> - VarmintRifle now uses 5.56mm (was .223)  
-> - Revolver uses .357 Magnum (was .45)
-> - .223 ammo removed from loot tables
+## 📦 MEDIOCRE (Common/Ok)
+
+| Item ID | Name | Notes |
+|---------|------|-------|
+| `Base.Rifle_CapGun` | Cap Gun | Joke weapon |
+| `Base.Revolver_CapGun` | Cap Revolver | Joke weapon |
+| `Base.Plasticcup` | Plastic Cup | Worthless |
+| `Base.TissueBox` | Tissue Box | Trash |
+| `Base.Newspaper` | Newspaper | Insulation |
+| `Base.Rag` | Rag | Makeshift bandage |
+| `Base.Pot` | Pot | Basic cooking |
+| `Base.Mug` | Mug | Drink holder |
+| `Base.Spoon` | Spoon | Utensil |
+| `Base.Fork` | Fork | Weapon? |
+
+---
+
+## 🎭 TROLL (Funny/Joke Items)
+
+| Item ID | Name | Notes |
+|---------|------|-------|
+| `Base.Hat_TinFoilHat` | Tin Foil Hat | Conspiracy protection |
+| `Base.Hat_SantaHat` | Santa Hat | Holiday cheer |
+| `Base.Hat_BunnyEarsBlack` | Bunny Ears | ... |
+| `Base.Hat_BunnyEarsWhite` | Bunny Ears | ... |
+| `Base.Swimsuit_TINT` | Swimsuit | Inappropriate times |
+| `Base.Bikini_TINT` | Bikini | Fashion victim |
+| `Base.CookieJar_Bear` | Teddy Bear | Comfort item |
+| `Base.Plushabug` | Plumpabug | Bug plush |
+| `Base.FluffyfootBunny` | Fluffyfoot | Bunny plush |
+| `Base.Rubberducky` | Rubber Duck | Bath time |
+| `Base.KeyRing_RubberDuck` | Rubber Duck Keyring | ...
+
+---
+
+## 🚗 VEHICLES (Curated)
+
+| Script | Name | Type |
+|--------|------|------|
+| `Base.OffRoad` | Off-Road | 4x4 |
+| `Base.PickUpTruck` | Pickup | Truck |
+| `Base.VanAmbulance` | Ambulance | Medic |
+| `Base.VanSeats` | Passenger Van | Transport |
+| `Base.SUV` | SUV | Family |
+| `Base.StepVan` | Step Van | Store truck |
+| `Base.Bicycle` | Bicycle | Quiet transport |
+| `Base.MotorBike` | Motorcycle | Fast |
+
+---
+
+## 🐄 ANIMALS (Spawnable)
+
+| Item ID | Name |
+|---------|------|
+| `Base.Cow` | Cow |
+| `Base.Pig` | Pig |
+| `Base.Sheep` | Sheep |
+| `Base.Chicken` | Chicken |
+| `Base.Turkey` | Turkey |
+| `Base.Rabbit` | Rabbit |
+| `Base.Deer` | Deer |
+
+---
+
+## 💊 MEDICAL QUICK REF
+
+| Item ID | Use |
+|---------|-----|
+| `Base.FirstAidKit` | Big heals |
+| `Base.Antibiotics` | Infection |
+| `Base.Pills` | Pain + sickness |
+| `Base.AlcoholBandage` | Sterile wound |
+| `Base.Bandage` | Basic wound |
+| `Base.Disinfectant` | Clean wounds |
+
+---
+
+## 🎯 AMMO QUICK REF (Build 42.14)
+
+| Ammo | For |
+|------|-----|
+| `Base.556Box` | VarmintRifle, AssaultRifle |
+| `Base.Bullets357` | Revolver |
+| `Base.Bullets9mm` | Pistol |
+| `Base.Bullets44` | Magnum |
+| `Base.Bullets45` | 1911 |
+| `Base.ShotgunShells` | Shotgun |
