@@ -100,7 +100,7 @@ THEMES = {
         ],
         "rewards": {
             "vehicle": ["Base.PickUpVan", "Base.VanAmbulance", "Base.OffRoad"],
-            "weapon": ["Base.AssaultRifle", "Base.Shotgun", "Base.223Box", "Base.308Box"],
+            "weapon": ["Base.AssaultRifle", "Base.Shotgun", "Base.556Box", "Base.308Box"],
             "medical": ["Base.FirstAidKit", "Base.Antibiotics", "Base.SutureNeedle"],
             "supply": ["Base.Generator", "Base.PropaneTank", "Base.CannedBeans"]
         }
@@ -301,8 +301,8 @@ def generate_creative_reward(theme, reward_type, target_player, state):
             run_rcon(["give", target_player, "Base.9mmClip", "2"])
         elif "Shotgun" in item:
             run_rcon(["give", target_player, "Base.ShotgunShells", "8"])
-        elif "Rifle" in item or "223" in item or "308" in item:
-            run_rcon(["give", target_player, "Base.223Box", "1"])
+        elif "Rifle" in item or "556" in item or "308" in item:
+            run_rcon(["give", target_player, "Base.556Box", "1"])
             
         print(f"REWARD: Weapon {item} -> {target_player}")
         
