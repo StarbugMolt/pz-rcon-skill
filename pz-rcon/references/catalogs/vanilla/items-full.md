@@ -6,6 +6,8 @@
 
 ## ⭐ EXCEPTIONAL (Top Tier Loot)
 
+> ⚠️ NOTE: When giving ANY firearm, ALWAYS give corresponding ammo too!
+
 | Item ID | Name | Notes |
 |---------|------|-------|
 | `Base.AssaultRifle` | Assault Rifle | Best automatic |
