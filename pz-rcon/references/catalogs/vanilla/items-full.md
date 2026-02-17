@@ -14,7 +14,7 @@
 | `Base.Bag_Military` | Military Pack | Huge storage |
 | `Base.Bag_ALICEpack` | ALICE Pack | Classic survivor |
 | `Base.Generator` | Generator | Base power |
-| `Base.FirstAidKit` | First Aid Kit | Life saver |
+| `Base.FirstAidKit` | First Aid Kit | Life saver (+ give Pills/Disinfectant/Bandage/Antibiotics too!) |
 | `Base.Antibiotics` | Antibiotics | Infection cure |
 | `Base.Machete` | Machete | Best melee weapon |
 | `Base.Axe` | Axe | Wood chopping + combat |
@@ -145,7 +145,7 @@
 
 | Item ID | Use |
 |---------|-----|
-| `Base.FirstAidKit` | Big heals |
+| `Base.FirstAidKit` | Big heals (ALSO give: Pills + Disinfectant + Bandage + Antibiotics) |
 | `Base.Antibiotics` | Infection |
 | `Base.Pills` | Pain + sickness |
 | `Base.AlcoholBandage` | Sterile wound |
