@@ -63,6 +63,13 @@
 | `Base.CampfireKit` | Campfire | Cooking |
 | `Base.FishingNet` | Fishing Net | Food source |
 | `Base.Hook` + `Base.Bait` | Fishing | Food source |
+| `Base.Beer` | Beer | Liquid bread |
+| `Base.Cookies` | Cookies | Sweet treat |
+| `Base.Baguette` | Baguette | French bread |
+| `Base.Croissant` | Croissant | Pastry |
+| `Base.Plank` | Plank | Building |
+| `Base.Nails` | Nails | Fastening |
+| `Base.Screws` | Screws | Assembly |
 
 ---
 
