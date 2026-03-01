@@ -1,0 +1,17 @@
+{
+  "ambient": {
+    "tickInterval": "*/5 * * * *",
+    "eventChance": 25,
+    "events": {
+      "sound": 25,
+      "weatherClear": 35,
+      "weatherStorm": 25,
+      "weatherLight": 15
+    },
+    "soundEvents": {
+      "gunshot": 50,
+      "alarm": 30,
+      "chopper": 20
+    }
+  }
+}
