@@ -126,15 +126,20 @@ xp_awards = [x for x in xp_awards if int(x.get('ts', 0)) >= now - 86400]  # 24h 
 entry['requests'] = reqs
 entry['xpAwards'] = xp_awards
 
-same_cat_30m = [r for r in reqs if r.get('category') == category and int(r.get('ts', 0)) >= now - 1800]
-count = len(same_cat_30m)
-request_number_30m = count + 1
+# Same-category tracking: 1 hour window
+same_cat_1h = [r for r in reqs if r.get('category') == category and int(r.get('ts', 0)) >= now - 3600]
+count = len(same_cat_1h)
+request_number_30m = count + 1  # Keeping variable name for backwards compatibility
 
-# Escalation ladder for repeated same-category asks in 30m window:
-# #1 -> normal, #2 -> reduced, #3 -> punish (tier 2), #4+ -> punish (tier 3)
-if count == 0:
+# NEW: Track ALL requests (not just same-category) for stricter anti-spam
+all_requests_1h = [r for r in reqs if int(r.get('ts', 0)) >= now - 3600]
+all_count = len(all_requests_1h)
+
+# Escalation ladder for repeated ASKS in 30m window (ALL requests, not just same category):
+# #1 -> normal, #2 -> reduced, #3+ -> punish
+if all_count == 0:
     decision = 'normal'
-elif count == 1:
+elif all_count == 1:
     decision = 'reduced'
 else:
     decision = 'punish'
@@ -159,12 +164,15 @@ normal_quip = pick_non_repeating('normal', NORMAL_POOL)
 reduced_quip = pick_non_repeating('tier1', TIER1_POOL).format(term=term)
 directive_code = random.randint(10000, 100000)
 
-# Event suggestion is part of escalation flavor; compute before punish line rendering.
+# Event suggestion - harsher for repeat requesters
+# Tier 2 (3rd request) -> gunshot or alarm guaranteed
+# Tier 3+ -> helicopter guaranteed
 recommended_event = None
-if decision == 'punish' and request_number_30m == 3:
-    recommended_event = random.choice(['alarm', 'gunshot', 'chopper'])
-elif decision == 'punish' and request_number_30m >= 4:
-    recommended_event = 'horde'
+if decision == 'punish':
+    if request_number_30m == 3:
+        recommended_event = random.choice(['gunshot', 'alarm', 'chopper'])  # Guaranteed event
+    else:
+        recommended_event = 'chopper'  # Escalate to helicopter for demanding players
 
 event_label_map = {
     'alarm': 'a facility alarm',
@@ -189,23 +197,22 @@ quip = {
     'punish': punish_quip,
 }[decision]
 
-# Flavor text when crossing spam-filter tiers.
-# Tier 0: normal, Tier 1: reduced, Tier 2: punish-warning, Tier 3: punish-horde.
-if request_number_30m == 1:
+# Flavor text when crossing spam-filter tiers (based on ALL requests, 1 hour window).
+if all_count == 0:
     spam_tier = 0
     tier_crossed = False
     tier_remark = 'Cooperative survivor status maintained.'
-elif request_number_30m == 2:
+elif all_count == 1:
     spam_tier = 1
     tier_crossed = True
     tier_remark = reduced_quip
-elif request_number_30m == 3:
+elif all_count == 2:
     spam_tier = 2
     tier_crossed = True
     tier_remark = punish_quip
 else:
     spam_tier = 3
-    tier_crossed = (request_number_30m == 4)
+    tier_crossed = (all_count >= 3)
     tier_remark = (
         f'Sorry, {term} — Space Corps Directive {directive_code} has gone fully theatrical. '
         'Main computer is panicking and has authorized hostile crowd-control. '
@@ -234,8 +241,9 @@ print(json.dumps({
     "honorificSource": honorific_source,
     "salutation": salutation,
     "decision": decision,
-    "recentSameCategory30m": count,
-    "requestNumber30m": request_number_30m,
+    "recentSameCategory1h": count,
+    "recentAllRequests1h": all_count,
+    "requestNumber1h": request_number_30m,
     "spamTier": spam_tier,
     "tierCrossed": tier_crossed,
     "tierRemark": tier_remark,

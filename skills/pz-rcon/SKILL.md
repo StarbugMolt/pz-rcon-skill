@@ -65,11 +65,15 @@ Track at least player, category, timestamp, grant result, and stored honorific w
 Use heuristic honorific guess from username when unknown; default to `Mister {user}, sir` unless corrected.
 For explicit corrections, update profile with `scripts/set_player_honorific.py <player> <mister|maam|miss>`.
 
-### 2) Anti-spam escalation ladder (same category, 30m window)
+### 2) Anti-spam escalation ladder (same category, 1h window)
 - ask #1 → `normal`
 - ask #2 → `reduced`
-- ask #3 → `punish` (tier-2 warning consequences)
-- ask #4+ → `punish` (tier-3 escalation; horde-capable consequence)
+- ask #3+ → `punish` (tier-2 warning consequences)
+
+### 2b) Anti-spam escalation ladder (ALL requests, 1h window) - STRICTER
+- ask #1 → `normal`
+- ask #2 → `reduced`  
+- ask #3+ → `punish` (guaranteed event: gunshot/alarm/chopper)
 
 Use sarcastic but non-abusive in-universe tone for punish outcomes.
 When a player crosses into a higher spam tier, include a creative/snarky tier-crossing remark (implemented via `request_policy.py` fields like `tierCrossed` + `tierRemark`).
