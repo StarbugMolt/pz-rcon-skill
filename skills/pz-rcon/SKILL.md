@@ -152,11 +152,21 @@ When generating broadcasts, SIMON rolls for mood:
 
 1. Every 5 minutes (configurable via cron), the system checks for online players
 2. If players are online (≥1), SIMON generates a 2-4 sentence radio broadcast
-3. ~10% of the time, he'll trigger a real in-game event:
+3. ~25% of the time (configurable), he'll trigger a real in-game event:
    - **Gunshot** - plays an attractor sound, SIMON reacts joyfully ("Someone's alive out there!")
    - **Helicopter** - triggers a helicopter flyover, SIMON panics
-4. Messages are split into 150-character chunks if needed
-5. All broadcasts reference players as "rumors" or "reports" - never addresses them directly
+   - **Alarm** - building/car alarm, SIMON groans
+   - **Weather** - storms or clear skies
+4. **REWARD SYSTEM:** When a negative event hits a player, SIMON drops a fitting reward:
+   | Negative Event | Fitting Reward | Simon Says |
+   |----------------|---------------|------------|
+   | Gunshot | Ammo, bandages | "Someone's gotta fight back... here, take this" |
+   | Alarm | Water, food | "That alarm drew them... you must be thirsty" |
+   | Chopper | Vehicle, parts | "Military's gone... but they left wheels behind" |
+   | Horde | Weapons, antibiotics | "You survived THAT? You earned this" |
+   | Lightning/Storm | Flashlight, batteries | "Storm's bad... you'll need light when it passes" |
+5. Messages are split into 150-character chunks if needed
+6. ALL transmissions end with "Simon, out."
 
 ### Configuration
 
