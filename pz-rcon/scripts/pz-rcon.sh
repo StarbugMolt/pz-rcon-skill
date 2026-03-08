@@ -12,10 +12,15 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Auto-load local skill env if present (unless vars already set by caller)
-if [ -f "$SKILL_DIR/.env" ]; then
+# Auto-load credentials from safe location (/home/starbugmolt/.env)
+# This survives workspace updates/resets.
+# Only fall back to skill-local .env if home one doesn't exist.
+if [ -f "/home/starbugmolt/.env" ]; then
     set -a
-    # shellcheck disable=SC1090
+    source "/home/starbugmolt/.env"
+    set +a
+elif [ -f "$SKILL_DIR/.env" ]; then
+    set -a
     source "$SKILL_DIR/.env"
     set +a
 fi
@@ -35,7 +40,30 @@ if [ -z "$PASSWORD" ]; then
 fi
 
 rcon_cmd() {
-    rcon -a "$HOST:$PORT" -p "$PASSWORD" "$@"
+    # Join all args into a single command string
+    local cmd=""
+    for arg in "$@"; do
+        if [[ "$arg" =~ [[:space:]] ]]; then
+            cmd="$cmd \"$arg\""
+        else
+            cmd="$cmd $arg"
+        fi
+    done
+    cmd=$(echo "$cmd" | sed 's/^ *//')  # trim leading space
+    rcon -a "$HOST:$PORT" -p "$PASSWORD" "$cmd"
+}
+
+# Find last space position in string (for word-boundary splitting)
+rfind_last_space() {
+    local str="$1"
+    local last_pos=0
+    local pos=0
+    for ((pos=0; pos<${#str}; pos++)); do
+        if [[ "${str:$pos:1}" == " " ]]; then
+            last_pos=$pos
+        fi
+    done
+    echo "$last_pos"
 }
 
 case "${1:-help}" in
@@ -53,12 +81,51 @@ case "${1:-help}" in
         CLEAN_MSG=$(printf "%s" "$*" | LC_ALL=C tr -cd '\11\12\15\40-\176')
         CLEAN_MSG=${CLEAN_MSG//$'\n'/ }
         CLEAN_MSG=${CLEAN_MSG//$'\r'/ }
+        
+        # Split into chunks of 150 chars, breaking at word boundaries
+        CHUNK_SIZE=150
+        while [ -n "$CLEAN_MSG" ]; do
+            if [ ${#CLEAN_MSG} -le $CHUNK_SIZE ]; then
+                CHUNK="$CLEAN_MSG"
+                CLEAN_MSG=""
+            else
+                # Find last space before chunk size
+                CHUNK="${CLEAN_MSG:0:$CHUNK_SIZE}"
+                LAST_SPACE=$(rfind_last_space "$CHUNK")
+                if [ -n "$LAST_SPACE" ] && [ "$LAST_SPACE" -gt 10 ]; then
+                    CHUNK="${CHUNK:0:$LAST_SPACE}"
+                    CLEAN_MSG="${CLEAN_MSG:$((LAST_SPACE + 1))}"
+                else
+                    # No space found, hard break at chunk size
+                    CHUNK="${CHUNK:0:$CHUNK_SIZE}"
+                    CLEAN_MSG="${CLEAN_MSG:$CHUNK_SIZE}"
+                fi
+            fi
+            if [ -z "$CHUNK" ]; then
+                break
+            fi
+            rcon_cmd "servermsg \"$CHUNK\""
+            sleep 0.5  # Brief pause between messages
+        done
+        ;;
+
+    # Direct message to specific player
+    pm|whisper|tell)
+        shift
+        if [ -z "$2" ]; then echo "Usage: $0 pm <username> <message>"; exit 1; fi
+        USERNAME="$1"
+        shift
+        MESSAGE="$*"
+        CLEAN_MSG=$(printf "%s" "$MESSAGE" | LC_ALL=C tr -cd '\11\12\15\40-\176')
+        CLEAN_MSG=${CLEAN_MSG//$'\n'/ }
+        CLEAN_MSG=${CLEAN_MSG//$'\r'/ }
         CLEAN_MSG=${CLEAN_MSG:0:180}
         if [ -z "$CLEAN_MSG" ]; then
             echo "Error: message is empty after sanitization (ASCII-only)."
             exit 1
         fi
-        rcon_cmd "servermsg \"$CLEAN_MSG\""
+        # PZ RCON: servermsg with "to:username" prefix sends private message
+        rcon_cmd "servermsg \"$CLEAN_MSG\" -u \"$USERNAME\""
         ;;
 
     # Items
@@ -68,21 +135,45 @@ case "${1:-help}" in
         USERNAME="$1"
         ITEM="$2"
         COUNT="${3:-1}"
-        rcon_cmd additem "\"$USERNAME\"" "$ITEM" "$COUNT"
+        rcon_cmd additem "$USERNAME" "$ITEM" "$COUNT"
+        
+        # Auto-add ammo for weapons
+        case "$ITEM" in
+            Base.Pistol|Base.Pistol2|Base.Revolver|Base.Revolver_Long|Base.M9)
+                echo "Auto-adding 9mm ammo..."
+                rcon_cmd additem "$USERNAME" "Base.Bullets9mmBox" 2
+                ;;
+            Base.Shotgun|Base.DoubleBarrelShotgun|Base.SawnOffShotgun)
+                echo "Auto-adding shotgun shells..."
+                rcon_cmd additem "$USERNAME" "Base.ShotgunShells" 8
+                ;;
+            Base.AssaultRifle|Base.M14|Base.SKS)
+                echo "Auto-adding 7.62mm ammo..."
+                rcon_cmd additem "$USERNAME" "Base.7.62x39mmBox" 1
+                ;;
+            Base.HuntingRifle|Base.BoltRifle)
+                echo "Auto-adding .308 ammo..."
+                rcon_cmd additem "$USERNAME" "Base.308WinchesterBox" 1
+                ;;
+            Base.VarmintRifle)
+                echo "Auto-adding .22 ammo..."
+                rcon_cmd additem "$USERNAME" "Base.22LR" 1
+                ;;
+        esac
         ;;
 
     # XP
     xp)
         shift
         if [ -z "$2" ]; then echo "Usage: $0 xp <username> <perk>=<amount>"; exit 1; fi
-        rcon_cmd addxp "\"$1\"" "$2"
+        rcon_cmd addxp "$1" "$2"
         ;;
 
     # Vehicles
     vehicle|spawn-vehicle)
         shift
         if [ -z "$2" ]; then echo "Usage: $0 vehicle <type> <username>"; exit 1; fi
-        rcon_cmd "addvehicle \"$1\" \"$2\""
+        rcon_cmd addvehicle "$1" "$2"
         ;;
 
     # Events
@@ -92,7 +183,7 @@ case "${1:-help}" in
         COUNT="$1"
         USERNAME="${2:-}"
         if [ -n "$USERNAME" ]; then
-            rcon_cmd createhorde "$COUNT" "\"$USERNAME\""
+            rcon_cmd createhorde "$COUNT" "$USERNAME"
         else
             rcon_cmd createhorde "$COUNT"
         fi
@@ -130,7 +221,13 @@ case "${1:-help}" in
     rain)
         shift
         case "${1:-start}" in
-            start) rcon_cmd startrain "${2:-}" ;;
+            start)
+                if [ -n "${2:-}" ]; then
+                    rcon_cmd startrain "$2"
+                else
+                    rcon_cmd startrain
+                fi
+                ;;
             stop)  rcon_cmd stoprain ;;
             *)     rcon_cmd startrain "$1" ;;  # intensity value
         esac
@@ -154,6 +251,58 @@ case "${1:-help}" in
         rcon_cmd "$@"
         ;;
 
+    # Special abilities (VERY RARE rewards)
+    godmod|invincible)
+        shift
+        if [ -z "$1" ]; then echo "Usage: $0 godmod <username> <true|false>"; exit 1; fi
+        rcon_cmd godmodplayer "\"$1\" \"-$2\""
+        echo "God mode $2 for $1."
+        ;;
+    invisible|ghost)
+        shift
+        if [ -z "$1" ]; then echo "Usage: $0 invisible <username> <true|false>"; exit 1; fi
+        rcon_cmd invisibleplayer "\"$1\" \"-$2\""
+        echo "Invisible mode $2 for $1."
+        ;;
+    noclip|phase)
+        shift
+        if [ -z "$1" ]; then echo "Usage: $0 noclip <username> <true|false>"; exit 1; fi
+        rcon_cmd noclip "\"$1\" \"-$2\""
+        echo "Noclip $2 for $1."
+        ;;
+    teleport|tp)
+        shift
+        if [ -z "$2" ]; then echo "Usage: $0 teleport <player1> <player2>"; exit 1; fi
+        rcon_cmd teleportplayer "\"$1\" \"$2\""
+        echo "Teleporting $1 to $2."
+        ;;
+    removezombies|clearezombies)
+        shift
+        if [ -n "$1" ]; then
+            # Remove zombies near player
+            rcon_cmd "removezombies \"$1\""
+            echo "Zombies cleared near $1."
+        else
+            echo "Usage: $0 removezombies <username>"
+            exit 1
+        fi
+        ;;
+    addkey|givekey)
+        shift
+        if [ -z "$2" ]; then echo "Usage: $0 addkey <username> [keyid] [keyname]"; exit 1; fi
+        KEY_ID="${2:-7295}"  # Default key ID if not provided
+        KEY_NAME="${3:-Car Keys}"
+        rcon_cmd addkey "\"$1\" \"$KEY_ID\" \"$KEY_NAME\""
+        echo "Gave $KEY_NAME ($KEY_ID) to $1."
+        ;;
+    
+    teleportto)
+        shift
+        if [ -z "$1" ]; then echo "Usage: $0 teleportto x,y,z"; exit 1; fi
+        rcon_cmd "teleportto $1"
+        echo "Teleported to coordinates $1."
+        ;;
+
     # Help
     help|--help|-h|*)
         cat << 'EOF'
@@ -170,6 +319,13 @@ REWARDS:
   give <user> <item> [count] Give item (e.g., Base.Axe)
   xp <user> <perk>=<amount>  Give XP (e.g., Carpentry=100)
   vehicle <type> <user>      Spawn vehicle near player
+  addkey <user> [id] [name]  Give vehicle keys
+  godmod <user> <true|false> Toggle invincibility
+  invisible <user> <true|false> Toggle ghost mode
+  noclip <user> <true|false> Toggle wall-walk
+  teleport <p1> <p2>          Teleport player to player
+  teleportto <x,y,z>         Teleport admin to coords
+  removezombies <user>       Clear zombies near player
 
 EVENTS:
   horde <count> [user]       Spawn zombie horde
