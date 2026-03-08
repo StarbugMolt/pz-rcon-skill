@@ -157,14 +157,22 @@ When generating broadcasts, SIMON rolls for mood:
    - **Helicopter** - triggers a helicopter flyover, SIMON panics
    - **Alarm** - building/car alarm, SIMON groans
    - **Weather** - storms or clear skies
-4. **REWARD SYSTEM:** When a negative event hits a player, SIMON drops a fitting reward:
+4. **REWARD SYSTEM (20% chance on negative events only):**
+   When a negative event triggers, roll again (1-100). Only if roll <= 20, give loot:
+   
    | Negative Event | Fitting Reward | Simon Says |
    |----------------|---------------|------------|
    | Gunshot | Ammo, bandages | "Someone's gotta fight back... here, take this" |
    | Alarm | Water, food | "That alarm drew them... you must be thirsty" |
-   | Chopper | Vehicle, parts | "Military's gone... but they left wheels behind" |
+   | Chopper | Parts, rarely vehicle | "Military's gone... but they left wheels behind" |
    | Horde | Weapons, antibiotics | "You survived THAT? You earned this" |
    | Lightning/Storm | Flashlight, batteries | "Storm's bad... you'll need light when it passes" |
+   
+   **VEHICLE REWARDS (VERY RARE - 5% of rewards):**
+   - SIMON broadcasts: "HEY! {player}, GET OUTSIDE NOW! You've got 30 seconds!"
+   - Then spawns vehicle nearby
+   - Only types: Van, PickUpVan, CarStationWagon
+   - Warning is mandatory — player needs to be outside!
 5. Messages are split into 150-character chunks if needed
 6. ALL transmissions end with "Simon, out."
 
