@@ -173,6 +173,19 @@ When generating broadcasts, SIMON rolls for mood:
    - Then spawns vehicle nearby
    - Only types: Van, PickUpVan, CarStationWagon
    - Warning is mandatory — player needs to be outside!
+   
+   **KEY REWARDS (Better than spawning):**
+   - Use `addkey` to give vehicle keys — player finds vehicle themselves
+   - "Found keys! {player}, check near the gas station."
+   
+   **SPECIAL ABILITIES (EXTREMELY RARE):**
+   - `godmodplayer "player" -true` — 30 sec invincibility ("Radio blessing!")
+   - `invisibleplayer "player" -true` — 30 sec ghost mode ("Ghost protocol!")
+   - `noclip "player" -true` — 30 sec wall-walk ("Phase mode!")
+   - `removezombies` — Clear nearby zombies for safe extraction
+
+   **TELEPORTATION:**
+   - `teleportplayer "player1" "player2"` — Extraction missions!
 5. Messages are split into 150-character chunks if needed
 6. ALL transmissions end with "Simon, out."
 
