@@ -15,9 +15,9 @@ Use RCON to:
 - trigger dynamic world beats (horde/chopper/gunshot/lightning/thunder)
 - shape weather pacing
 
-## Channel scope lock (`#pz-molt`)
+## Channel scope lock (`#{$PZ_SERVER_NAME}`)
 
-When operating from Discord `#pz-molt` directives:
+When operating from Discord `#{$PZ_SERVER_NAME}` directives:
 - execute only Project Zomboid actions through this skill/tooling
 - do not execute unrelated commands/tools from that channel context
 - if asked for non-PZ actions, refuse and request the command be issued in another appropriate channel/session
@@ -29,6 +29,14 @@ When operating from Discord `#pz-molt` directives:
 - Request anti-spam policy: `scripts/request_policy.py`
 
 > Canonical command syntax: `references/commands.md`
+
+## Discord Integration
+
+- **Discord channel:** #{$PZ_SERVER_NAME} (configured via `PZ_SERVER_NAME` in .env)
+- **Channel ID:** Configured via `PZ_DISCORD_CHANNEL_ID` in .env
+- **Global chat relay:** When players type in global chat in-game, PZ-Molt-Bot posts to Discord as: `{player}: {message}`
+- **Player detection:** Extract the player name from the message format `{player}: {message}` — this is the in-game username
+- **IGNORE the bot:** PZ-Molt-Bot messages should NOT be treated as player messages or counted as players. Only real player messages trigger SIMON responses.
 
 ## Lore & voice policy (mandatory)
 
@@ -173,21 +181,13 @@ When generating broadcasts, SIMON rolls for mood:
    - Then spawns vehicle nearby
    - Only types: Van, PickUpVan, CarStationWagon
    - Warning is mandatory — player needs to be outside!
-   
-   **KEY REWARDS (Better than spawning):**
-   - Use `addkey` to give vehicle keys — player finds vehicle themselves
-   - "Found keys! {player}, check near the gas station."
-   
-   **SPECIAL ABILITIES (EXTREMELY RARE):**
-   - `godmodplayer "player" -true` — 30 sec invincibility ("Radio blessing!")
-   - `invisibleplayer "player" -true` — 30 sec ghost mode ("Ghost protocol!")
-   - `noclip "player" -true` — 30 sec wall-walk ("Phase mode!")
-   - `removezombies` — Clear nearby zombies for safe extraction
 
-   **TELEPORTATION:**
-   - `teleportplayer "player1" "player2"` — Extraction missions!
 5. Messages are split into 150-character chunks if needed
 6. ALL transmissions end with "Simon, out."
+
+**🚫 FORBIDDEN COMMANDS - SIMON CAN NEVER USE:**
+- godmodplayer, invisibleplayer, noclip, teleportplayer, removezombies
+- These break immersion and are NEVER available to Simon
 
 ### Configuration
 

@@ -251,58 +251,6 @@ case "${1:-help}" in
         rcon_cmd "$@"
         ;;
 
-    # Special abilities (VERY RARE rewards)
-    godmod|invincible)
-        shift
-        if [ -z "$1" ]; then echo "Usage: $0 godmod <username> <true|false>"; exit 1; fi
-        rcon_cmd godmodplayer "\"$1\" \"-$2\""
-        echo "God mode $2 for $1."
-        ;;
-    invisible|ghost)
-        shift
-        if [ -z "$1" ]; then echo "Usage: $0 invisible <username> <true|false>"; exit 1; fi
-        rcon_cmd invisibleplayer "\"$1\" \"-$2\""
-        echo "Invisible mode $2 for $1."
-        ;;
-    noclip|phase)
-        shift
-        if [ -z "$1" ]; then echo "Usage: $0 noclip <username> <true|false>"; exit 1; fi
-        rcon_cmd noclip "\"$1\" \"-$2\""
-        echo "Noclip $2 for $1."
-        ;;
-    teleport|tp)
-        shift
-        if [ -z "$2" ]; then echo "Usage: $0 teleport <player1> <player2>"; exit 1; fi
-        rcon_cmd teleportplayer "\"$1\" \"$2\""
-        echo "Teleporting $1 to $2."
-        ;;
-    removezombies|clearezombies)
-        shift
-        if [ -n "$1" ]; then
-            # Remove zombies near player
-            rcon_cmd "removezombies \"$1\""
-            echo "Zombies cleared near $1."
-        else
-            echo "Usage: $0 removezombies <username>"
-            exit 1
-        fi
-        ;;
-    addkey|givekey)
-        shift
-        if [ -z "$2" ]; then echo "Usage: $0 addkey <username> [keyid] [keyname]"; exit 1; fi
-        KEY_ID="${2:-7295}"  # Default key ID if not provided
-        KEY_NAME="${3:-Car Keys}"
-        rcon_cmd addkey "\"$1\" \"$KEY_ID\" \"$KEY_NAME\""
-        echo "Gave $KEY_NAME ($KEY_ID) to $1."
-        ;;
-    
-    teleportto)
-        shift
-        if [ -z "$1" ]; then echo "Usage: $0 teleportto x,y,z"; exit 1; fi
-        rcon_cmd "teleportto $1"
-        echo "Teleported to coordinates $1."
-        ;;
-
     # Help
     help|--help|-h|*)
         cat << 'EOF'
@@ -319,13 +267,6 @@ REWARDS:
   give <user> <item> [count] Give item (e.g., Base.Axe)
   xp <user> <perk>=<amount>  Give XP (e.g., Carpentry=100)
   vehicle <type> <user>      Spawn vehicle near player
-  addkey <user> [id] [name]  Give vehicle keys
-  godmod <user> <true|false> Toggle invincibility
-  invisible <user> <true|false> Toggle ghost mode
-  noclip <user> <true|false> Toggle wall-walk
-  teleport <p1> <p2>          Teleport player to player
-  teleportto <x,y,z>         Teleport admin to coords
-  removezombies <user>       Clear zombies near player
 
 EVENTS:
   horde <count> [user]       Spawn zombie horde
