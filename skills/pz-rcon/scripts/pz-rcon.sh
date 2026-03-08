@@ -12,10 +12,15 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Auto-load local skill env if present (unless vars already set by caller)
-if [ -f "$SKILL_DIR/.env" ]; then
+# Auto-load credentials from safe location (/home/starbugmolt/.env)
+# This survives workspace updates/resets.
+# Only fall back to skill-local .env if home one doesn't exist.
+if [ -f "/home/starbugmolt/.env" ]; then
     set -a
-    # shellcheck disable=SC1090
+    source "/home/starbugmolt/.env"
+    set +a
+elif [ -f "$SKILL_DIR/.env" ]; then
+    set -a
     source "$SKILL_DIR/.env"
     set +a
 fi
@@ -35,7 +40,17 @@ if [ -z "$PASSWORD" ]; then
 fi
 
 rcon_cmd() {
-    rcon -a "$HOST:$PORT" -p "$PASSWORD" "$@"
+    # Join all args into a single command string
+    local cmd=""
+    for arg in "$@"; do
+        if [[ "$arg" =~ [[:space:]] ]]; then
+            cmd="$cmd \"$arg\""
+        else
+            cmd="$cmd $arg"
+        fi
+    done
+    cmd=$(echo "$cmd" | sed 's/^ *//')  # trim leading space
+    rcon -a "$HOST:$PORT" -p "$PASSWORD" "$cmd"
 }
 
 # Find last space position in string (for word-boundary splitting)
@@ -120,21 +135,45 @@ case "${1:-help}" in
         USERNAME="$1"
         ITEM="$2"
         COUNT="${3:-1}"
-        rcon_cmd additem "\"$USERNAME\"" "$ITEM" "$COUNT"
+        rcon_cmd additem "$USERNAME" "$ITEM" "$COUNT"
+        
+        # Auto-add ammo for weapons
+        case "$ITEM" in
+            Base.Pistol|Base.Pistol2|Base.Revolver|Base.Revolver_Long|Base.M9)
+                echo "Auto-adding 9mm ammo..."
+                rcon_cmd additem "$USERNAME" "Base.Bullets9mmBox" 2
+                ;;
+            Base.Shotgun|Base.DoubleBarrelShotgun|Base.SawnOffShotgun)
+                echo "Auto-adding shotgun shells..."
+                rcon_cmd additem "$USERNAME" "Base.ShotgunShells" 8
+                ;;
+            Base.AssaultRifle|Base.M14|Base.SKS)
+                echo "Auto-adding 7.62mm ammo..."
+                rcon_cmd additem "$USERNAME" "Base.7.62x39mmBox" 1
+                ;;
+            Base.HuntingRifle|Base.BoltRifle)
+                echo "Auto-adding .308 ammo..."
+                rcon_cmd additem "$USERNAME" "Base.308WinchesterBox" 1
+                ;;
+            Base.VarmintRifle)
+                echo "Auto-adding .22 ammo..."
+                rcon_cmd additem "$USERNAME" "Base.22LR" 1
+                ;;
+        esac
         ;;
 
     # XP
     xp)
         shift
         if [ -z "$2" ]; then echo "Usage: $0 xp <username> <perk>=<amount>"; exit 1; fi
-        rcon_cmd addxp "\"$1\"" "$2"
+        rcon_cmd addxp "$1" "$2"
         ;;
 
     # Vehicles
     vehicle|spawn-vehicle)
         shift
         if [ -z "$2" ]; then echo "Usage: $0 vehicle <type> <username>"; exit 1; fi
-        rcon_cmd "addvehicle \"$1\" \"$2\""
+        rcon_cmd addvehicle "$1" "$2"
         ;;
 
     # Events
@@ -144,7 +183,7 @@ case "${1:-help}" in
         COUNT="$1"
         USERNAME="${2:-}"
         if [ -n "$USERNAME" ]; then
-            rcon_cmd createhorde "$COUNT" "\"$USERNAME\""
+            rcon_cmd createhorde "$COUNT" "$USERNAME"
         else
             rcon_cmd createhorde "$COUNT"
         fi
