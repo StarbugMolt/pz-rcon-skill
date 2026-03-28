@@ -18,6 +18,19 @@ try:
 except Exception:
     _nm = None
 
+# --- NICKNAME SYSTEM ---
+def get_player_nickname(player_name: str) -> str:
+    """Return stored nickname for player, falling back to player name."""
+    try:
+        profiles_file = os.path.join(SKILL_DIR, "state/player-profiles.json")
+        if os.path.exists(profiles_file):
+            with open(profiles_file) as f:
+                data = json.load(f)
+            return data.get("players", {}).get(player_name, {}).get("nickname", player_name)
+    except Exception:
+        pass
+    return player_name
+
 if len(sys.argv) < 3:
     print('{"error":"usage: request_policy.py <player> <category>"}')
     sys.exit(1)
@@ -122,13 +135,13 @@ else:
     save_profiles(profiles)
 
 if honorific == 'maam':
-    salutation = f"Ma'am {player}"
+    salutation = f"Ma'am {get_player_nickname(player)}"
     term = "ma'am"
 elif honorific == 'miss':
-    salutation = f"Miss {player}"
+    salutation = f"Miss {get_player_nickname(player)}"
     term = "miss"
 else:
-    salutation = f"Mister {player}, sir"
+    salutation = f"Mister {get_player_nickname(player)}, sir"
     term = "sir"
 
 # Keep recent windows bounded
