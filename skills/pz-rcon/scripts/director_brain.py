@@ -7,8 +7,46 @@ import time
 import subprocess
 
 # --- CONFIGURATION ---
-STATE_FILE = os.path.join(os.path.dirname(__file__), "../state/narrative-state.json")
-PLAYER_REGISTRY_FILE = os.path.join(os.path.dirname(__file__), "../state/player-registry.json")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SKILL_DIR = os.path.dirname(SCRIPT_DIR)
+STATE_FILE = os.path.join(SKILL_DIR, "state/narrative-state.json")
+PLAYER_REGISTRY_FILE = os.path.join(SKILL_DIR, "state/player-registry.json")
+
+# --- NARRATIVE MEMORY ---
+sys.path.insert(0, SCRIPT_DIR)
+from narrative_memory import NarrativeMemory
+
+_nm = None  # lazy init
+
+def get_nm() -> NarrativeMemory:
+    global _nm
+    if _nm is None:
+        _nm = NarrativeMemory(SKILL_DIR)
+    return _nm
+
+def nm_log_broadcast(session_id: str, player: str, content: str):
+    """Log a broadcast to session and player narrative."""
+    nm = get_nm()
+    nm.add_narrative_entry(session_id, "broadcast", content, player=player)
+    if player:
+        nm.add_narrative_entry(session_id, "broadcast", content, player=player)
+        # Also record player context for continuity
+        recent_beats = nm.get_player_recent_beats(player, hours=2)
+        if recent_beats:
+            beat = recent_beats[-1].get("beat", "")
+            if beat:
+                nm.record_player_storybeat(player, "simon_broadcast", detail=content[:80])
+
+def nm_log_event(session_id: str, player: str, event_type: str, content: str, item: str = None):
+    """Log an event to session and player story beats."""
+    nm = get_nm()
+    nm.add_narrative_entry(session_id, "event", content, player=player, event_type=event_type, item=item)
+    if player:
+        nm.record_player_storybeat(player, event_type, detail=content[:100])
+    if item:
+        nm.add_narrative_entry(session_id, "reward", f"{item} given to {player}", player=player, item=item)
+        if player:
+            nm.record_player_reward(player, event_type, item)
 
 # --- PLAYER GREETING SYSTEM ---
 def get_player_info(player_name):
@@ -334,41 +372,35 @@ def generate_creative_reward(theme, reward_type, target_player, state):
 
 # --- LOGIC ---
 def main():
-    # 1. Load or Init State
+    # Get session context from ambient_tick.sh
+    session_id = os.environ.get("PZ_SESSION_ID", "")
+    nm = get_nm()
+
+    # Load or Init State (theme system — still separate from narrative memory)
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, 'r') as f:
             state = json.load(f)
     else:
-        # New Session / Reset
         theme_key = random.choice(list(THEMES.keys()))
         state = {
             "tick": 0,
             "lastActionTs": int(time.time()),
             "lastEventTs": 0,
             "theme": theme_key,
-            "pendingReward": None, # "vehicle", "weapon"
-            "history": [] # Keep last 5 messages
+            "pendingReward": None,
+            "history": []
         }
         print(f"INIT: Started new plot theme: {THEMES[theme_key]['name']}")
 
     theme = THEMES[state.get("theme", "MILITARY_COLLAPSE")]
     now = int(time.time())
     state["tick"] += 1
-    
-    # 2. Get Players (passed via stdin or args? lets use args for simplicity or just fetch them)
-    # Actually, ambient_tick.sh passes nothing yet. Let's fetch players inside here for targeting.
-    # Note: parsing 'players' output from pz-rcon.sh is annoying. 
-    # For now, let's assume if we need a target, we pick a random one if possible, 
-    # or use 'all' for messages. 
-    # To drop loot, we NEED a username.
-    
+
+    # Fetch current players
     players = []
     try:
-        script_dir = os.path.dirname(__file__)
-        res = subprocess.run([os.path.join(script_dir, "pz-rcon.sh"), "players"], stdout=subprocess.PIPE)
-        # Parse: "Players connected (1):" then lines of "- user"
-        lines = res.stdout.decode().splitlines()
-        for line in lines:
+        res = subprocess.run([os.path.join(SCRIPT_DIR, "pz-rcon.sh"), "players"], stdout=subprocess.PIPE)
+        for line in res.stdout.decode().splitlines():
             if line.strip().startswith("-"):
                 players.append(line.strip().replace("- ", ""))
     except Exception as e:
@@ -376,112 +408,128 @@ def main():
 
     target_player = random.choice(players) if players else None
 
-    # 2.5. Handle Player Join Events (Personalized Greetings)
+    # Get session context for avoiding repetition
+    recent_session_broadcasts = []
+    session_events_this_session = []
+    if session_id:
+        recent_session_broadcasts = nm.get_session_broadcasts(session_id, limit=5)
+        session_events_this_session = nm.get_session_events(session_id)
+        # Also get per-player context for the target
+        if target_player:
+            player_ctx = nm.get_contextual_narrative_for_player(target_player, session_id)
+
+    # --- Handle Player Join Events (Personalized Greetings) ---
     delta_event = os.environ.get("PZ_DELTA_EVENT", "")
     if delta_event.startswith("NEW:"):
-        new_players = delta_event.replace("NEW:", "").split(",")
-        # Filter empty strings
-        new_players = [p.strip() for p in new_players if p.strip()]
+        new_players = [p.strip() for p in delta_event.replace("NEW:", "").split(",") if p.strip()]
         if new_players:
             print(f"New player(s) detected: {new_players}")
             join_messages = handle_player_join_event(new_players)
-            # Add to history to avoid repeats
             for msg in join_messages:
                 if msg not in state.get("history", []):
                     state.setdefault("history", []).append(msg)
                     if len(state["history"]) > 5:
                         state["history"].pop(0)
-            # Update last action timestamp
+                if session_id:
+                    for p in new_players:
+                        nm_log_broadcast(session_id, p, msg)
             state["lastActionTs"] = now
             save_state(state)
-            return  # Exit early after greeting
+            return
 
-    # 3. Process Pending Rewards (High Priority)
+    # --- Process Pending Rewards ---
     if state.get("pendingReward") and target_player:
         reward_type = state["pendingReward"]
         success = generate_creative_reward(theme, reward_type, target_player, state)
-        
+
         if success:
-            # Reward delivered successfully, clear it
             state["pendingReward"] = None
             state["pendingRewardRetries"] = 0
-        # else: reward stays pending for next tick (vehicle retry logic)
-        
+
         state["lastActionTs"] = now
         save_state(state)
         return
 
-    # 4. Mini-Narration (every tick when players online)
-    # Small flavor messages every tick - no cooldown
-    if players and random.randint(1, 100) <= 90:  # 90% chance per tick
-        mini_narration = [
-            f"{random.choice(theme['prefixes'])} Radio check... all stations reporting in.",
-            f"{random.choice(theme['prefixes'])} Background radiation levels: nominal.",
-            f"{random.choice(theme['prefixes'])} Unidentified movement detected 2 clicks north.",
-            f"{random.choice(theme['prefixes'])} Reminder: Electronics fail. Stay alert.",
-            f"{random.choice(theme['prefixes'])} Weather satellite: clear skies expected.",
-            f"{random.choice(theme['prefixes'])} Packet from Fort Red: 'Hold the line.'",
-            f"{random.choice(theme['prefixes'])} Rumor: there's a supply cache near the river.",
-            f"{random.choice(theme['prefixes'])} Auto-scan complete. No new signatures."
+    # --- Mini-Narration (avoids repeating recent session broadcasts) ---
+    if players and random.randint(1, 100) <= 90:
+        all_mini = [
+            "Radio check... all stations reporting in.",
+            "Background radiation levels: nominal.",
+            "Unidentified movement detected 2 clicks north.",
+            "Reminder: Electronics fail. Stay alert.",
+            "Weather satellite: clear skies expected.",
+            "Packet from Fort Red: 'Hold the line.'",
+            "Rumor: there's a supply cache near the river.",
+            "Auto-scan complete. No new signatures."
         ]
-        msg = random.choice(mini_narration)
-        run_rcon(["msg", msg])
-        print(f"MINI-NARRATION: {msg}")
+        # Filter out anything already broadcast in this session (within 2h)
+        recent_contents = [b.split(": ", 1)[-1] if ": " in b else b for b in recent_session_broadcasts]
+        pool = [m for m in all_mini if not any(m in rc for rc in recent_contents)]
+        if not pool:
+            pool = all_mini  # fallback if everything was used
+
+        msg_body = random.choice(pool)
+        prefix = random.choice(theme["prefixes"])
+        full_msg = f"{prefix} {msg_body}"
+        run_rcon(["msg", full_msg])
+        print(f"MINI-NARRATION: {full_msg}")
+        if session_id and target_player:
+            nm_log_broadcast(session_id, target_player, full_msg)
         state["lastActionTs"] = now
         save_state(state)
         return
 
-    # 5. Roll for Major Event
-    # Cooldown: 10 mins (600s)
+    # --- Roll for Major Event ---
     time_since_last = now - state.get("lastEventTs", 0)
-    chance = 25 # 25%
-    
-    if time_since_last < 600:
-        chance = 0 # Cooldown active
-    
+    chance = 25 if time_since_last >= 600 else 0
+
     roll = random.randint(1, 100)
-    
+
     if roll <= chance:
-        # TRIGGER EVENT
         event_roll = random.randint(1, 100)
-        
-        if event_roll <= 25: 
-            # BAD EVENT (Horde/Chopper) - Sets up Reward
-            etype = random.choice(["chopper", "horde", "alarm"])
-            
+
+        if event_roll <= 25:
+            # BAD EVENT
+            possible = [e for e in ["chopper", "horde", "alarm"]
+                        if session_id and e not in session_events_this_session[-3:]]
+            if not possible:
+                possible = ["chopper", "horde", "alarm"]
+            etype = random.choice(possible)
+
             if etype == "chopper":
-                # Warn all players about helicopter
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Air asset 4-2 is smoking... going down!"])
                 run_rcon(["chopper"])
                 state["pendingReward"] = random.choice(["weapon", "medical"])
-                
+                event_msg = "Helicopter down — military asset lost in sector."
+
             elif etype == "horde":
                 count = random.randint(15, 30)
                 if target_player:
-                    # Warn the targeted player directly + broadcast
                     run_rcon(["msg", f"{random.choice(theme['prefixes'])} ALERT: Massive bio-signal convergence detected!"])
                     run_rcon(["msg", f"[{target_player}] DIRECTOR WARNING: Horde of {count} detected converging on YOUR position. Prepare for contact!"])
                     run_rcon(["horde", str(count), target_player])
-                    # Horde is highest threat -> best rewards (vehicle or weapon only)
                     state["pendingReward"] = random.choice(["vehicle", "weapon"])
+                    event_msg = f"Horde of {count} converged on {target_player}."
                 else:
                     run_rcon(["msg", f"{random.choice(theme['prefixes'])} Massive bio-signals migrating across the sector."])
                     run_rcon(["gunshot"])
-                    
+                    event_msg = "Horde migration detected across sector."
+                    state["pendingReward"] = random.choice(["medical", "weapon"])
+
             elif etype == "alarm":
-                # Alarms attract zombies - warn players
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Security system breach. Building alarms triggered."])
                 if target_player:
                     run_rcon(["msg", f"[{target_player}] DIRECTOR: Alarm triggered near you. Expect increased activity."])
                 run_rcon(["alarm"])
-                # Alarm is moderate threat -> medical or weapon
                 state["pendingReward"] = random.choice(["medical", "weapon"])
-            
+                event_msg = "Building alarm triggered — drawing zombie attention."
+
+            if session_id:
+                nm_log_event(session_id, target_player, etype, event_msg)
             state["lastEventTs"] = now
             print(f"ACTION: Bad Event {etype}")
 
         elif event_roll <= 55:
-            # WEATHER EVENT
             wtype = random.choice(["storm", "rain", "clear"])
             if wtype == "storm":
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Severe weather alert. Seek shelter immediately."])
@@ -493,36 +541,41 @@ def main():
             else:
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Weather clearing. Visibility improving."])
                 run_rcon(["clear"])
-            
+
+            if session_id:
+                nm_log_event(session_id, target_player, f"weather_{wtype}", f"Weather event: {wtype}")
             state["lastEventTs"] = now
             print(f"ACTION: Weather {wtype}")
 
         else:
-            # FLAVOR EVENT + FX
             flavor = random.choice(theme["flavor"])
-            prefix = random.choice(theme["prefixes"])
-            full_msg = f"{prefix} {flavor}"
-            run_rcon(["msg", full_msg])
-            
-            # Sound FX
-            fx = random.choice(["gunshot", "thunder", "lightning"])
-            run_rcon([fx])
-            
-            state["lastEventTs"] = now
-            print(f"ACTION: Flavor + {fx}")
+            # Avoid exact repeat from session
+            if flavor not in recent_session_broadcasts[-3:]:
+                full_msg = f"{random.choice(theme['prefixes'])} {flavor}"
+                run_rcon(["msg", full_msg])
+                fx = random.choice(["gunshot", "thunder", "lightning"])
+                run_rcon([fx])
+                if session_id:
+                    nm_log_event(session_id, target_player, f"flavor_{fx}", full_msg)
+                state["lastEventTs"] = now
+                print(f"ACTION: Flavor + {fx}")
+            else:
+                print("ACTION: Skipped (duplicate flavor)")
 
     else:
-        # QUIET / IDLE
-        # 10% chance of just passive flavor text without resetting cooldown
         if random.randint(1, 100) <= 10:
             flavor = random.choice(theme["flavor"])
-            prefix = random.choice(theme["prefixes"])
-            # Don't repeat recent history
-            if flavor not in state["history"]:
-                run_rcon(["msg", f"{prefix} {flavor}"])
+            if flavor not in state["history"] and flavor not in recent_session_broadcasts[-3:]:
+                full_msg = f"{random.choice(theme['prefixes'])} {flavor}"
+                run_rcon(["msg", full_msg])
                 state["history"].append(flavor)
-                if(len(state["history"]) > 5): state["history"].pop(0)
+                if len(state["history"]) > 5:
+                    state["history"].pop(0)
+                if session_id and target_player:
+                    nm_log_broadcast(session_id, target_player, full_msg)
                 print("ACTION: Passive Flavor")
+            else:
+                print("ACTION: Skipped (duplicate passive)")
         else:
             print("ACTION: Idle")
 

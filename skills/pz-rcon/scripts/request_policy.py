@@ -7,6 +7,17 @@ Outputs JSON decision for caller script/agent.
 """
 import json, os, random, sys, time
 
+# --- NARRATIVE MEMORY ---
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SKILL_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, SCRIPT_DIR)
+
+try:
+    from narrative_memory import NarrativeMemory
+    _nm = NarrativeMemory(SKILL_DIR)
+except Exception:
+    _nm = None
+
 if len(sys.argv) < 3:
     print('{"error":"usage: request_policy.py <player> <category>"}')
     sys.exit(1)
@@ -225,6 +236,26 @@ if spam_tier == 3:
 # Always include gendered salutation in player-facing lines.
 quip = f"{salutation} — {quip}"
 tier_remark = f"{salutation} — {tier_remark}"
+
+# --- Record in player narrative memory ---
+if _nm:
+    try:
+        # Get current session id if available
+        session_id = os.environ.get("PZ_SESSION_ID", "")
+        if session_id:
+            _nm.record_player_request(player, category, quip)
+            # Also add a narrative entry for this session
+            _nm.add_narrative_entry(
+                session_id,
+                "player_request",
+                f"[{player}] requested {category} — Simon responded: {quip[:100]}",
+                player=player
+            )
+        else:
+            # Still record in player profile even without active session
+            _nm.record_player_request(player, category, quip)
+    except Exception as e:
+        print(f"# Warning: could not update narrative memory: {e}", file=sys.stderr)
 
 # Keep rolling pressure; do not reset on punish.
 reset_applied = False
