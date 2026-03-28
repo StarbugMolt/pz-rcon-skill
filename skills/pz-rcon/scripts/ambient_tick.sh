@@ -242,7 +242,38 @@ else:
     print(">>> NO_CHANGE")
 PYEOF
   
-  echo "No players online. Director sleeping."
+  # Archive and close the current session (if any)
+  SESSION_ID=$(python3 - "$SKILL_DIR" << 'PYEOF'
+import sys, json, os
+skill_dir = sys.argv[1]
+try:
+    sys.path.insert(0, os.path.join(skill_dir, "scripts"))
+    from narrative_memory import NarrativeMemory
+    nm = NarrativeMemory(skill_dir)
+    sid = nm.get_current_session_id()
+    if sid:
+        s = nm.end_session(sid)
+        print(f"Archived session: {sid}")
+        print(f"  Players: {list(s.get('players', {}).keys())}")
+        print(f"  Narrative entries: {len(s.get('narrative', []))}")
+    else:
+        print("No active session to archive.")
+except Exception as e:
+    print(f"Session archive error: {e}")
+PYEOF
+)
+  log "$SESSION_ID"
+  echo "No players online. Session archived. Director sleeping."
+  # Clean up stale archived sessions while we're at it
+  python3 - "$SKILL_DIR" << 'PYEOF'
+import sys, os
+skill_dir = sys.argv[1]
+try:
+    sys.path.insert(0, os.path.join(skill_dir, "scripts"))
+    from narrative_memory import NarrativeMemory
+    NarrativeMemory(skill_dir).archive_and_clear_stale_sessions()
+except: pass
+PYEOF
   exit 0
 fi
 
@@ -253,6 +284,57 @@ DELTA_EVENT=$(detect_player_delta "${CURRENT_PLAYERS[@]}")
 echo "Delta event: $DELTA_EVENT"
 log "Delta event: $DELTA_EVENT"
 
-# 4. AI Director now handles narrative via cron - no more static script
-log "Player count: $COUNT. AI Director will generate radio chatter."
-echo "AI Director handling narrative (cron-based)."
+# 4. Session management — get or create active session
+SESSION_MGMT=$(python3 - "$SKILL_DIR" "$DELTA_EVENT" "${CURRENT_PLAYERS[*]}" << 'PYEOF'
+import sys, json, os
+skill_dir = sys.argv[1]
+delta_event = sys.argv[2] if len(sys.argv) > 2 else ""
+current_players = sys.argv[3].split(",") if len(sys.argv) > 3 else []
+current_players = [p.strip() for p in current_players if p.strip()]
+
+sys.path.insert(0, os.path.join(skill_dir, "scripts"))
+from narrative_memory import NarrativeMemory
+nm = NarrativeMemory(skill_dir)
+
+sid = nm.get_current_session_id()
+if not sid:
+    # First player(s) — create new session
+    sid = nm.create_session(current_players)["sessionId"]
+    print(f"SESSION_CREATED:{sid}")
+    for p in current_players:
+        nm.player_join(p, sid)
+else:
+    # Existing session — handle joins and leaves
+    session = nm.load_session(sid)
+    prev_players = set(session.get("players", {}).keys())
+    curr_players = set(current_players)
+
+    joined = curr_players - prev_players
+    left = prev_players - curr_players
+
+    for p in joined:
+        nm.player_join(p, sid)
+        print(f"PLAYER_JOINED:{p}")
+    for p in left:
+        nm.player_leave(p, sid)
+        print(f"PLAYER_LEFT:{p}")
+
+    if not joined and not left:
+        print(f"SESSION_CONTINUES:{sid}")
+    else:
+        print(f"SESSION_ACTIVE:{sid}")
+PYEOF
+)
+  echo "$SESSION_MGMT"
+  log "$SESSION_MGMT"
+
+  # Extract session id
+  SESSION_ID=$(echo "$SESSION_MGMT" | grep -oP '(?<=:)[^:]+$' | head -1)
+  SESSION_ID="${SESSION_ID##*$'\n'}"  # last line wins
+  [ -z "$SESSION_ID" ] && SESSION_ID="none"
+
+  # 5. Pass session context to director_brain.py
+  export PZ_SESSION_ID="$SESSION_ID"
+  log "Player count: $COUNT. Active session: $SESSION_ID. Running AI Director."
+  echo "Active session: $SESSION_ID — running AI Director."
+  python3 "$DIR/director_brain.py"
