@@ -24,6 +24,24 @@ def get_nm() -> NarrativeMemory:
         _nm = NarrativeMemory(SKILL_DIR)
     return _nm
 
+# --- PLAYER NICKNAME SYSTEM ---
+PROFILES_FILE = os.path.join(SKILL_DIR, "state/player-profiles.json")
+
+def get_player_nickname(player_name: str) -> str:
+    """Return stored nickname for player, or player_name if none set."""
+    try:
+        if os.path.exists(PROFILES_FILE):
+            with open(PROFILES_FILE) as f:
+                data = json.load(f)
+            return data.get("players", {}).get(player_name, {}).get("nickname", player_name)
+    except Exception:
+        pass
+    return player_name
+
+def address_player(player_name: str) -> str:
+    """How SIMON refers to a player (nickname or raw name)."""
+    return get_player_nickname(player_name)
+
 def nm_log_broadcast(session_id: str, player: str, content: str):
     """Log a broadcast to session and player narrative."""
     nm = get_nm()
@@ -79,6 +97,7 @@ def get_visit_tier(visit_count):
 def generate_player_greeting(player_name):
     """Generate personalized greeting based on player history."""
     info = get_player_info(player_name)
+    display_name = address_player(player_name)
     if not info:
         # Fallback if no info
         return f"Welcome to Muldraugh, survivor. You'll need to learn fast."
@@ -88,24 +107,24 @@ def generate_player_greeting(player_name):
     
     greetings = {
         "new": [
-            f"New arrival detected. Welcome to the apocalypse, {player_name}.",
-            f"Unregistered signal... {player_name}? Welcome to Muldraugh. Good luck.",
-            f"First time in sector, {player_name}? The zombies are hungry."
+            f"New arrival detected. Welcome to the apocalypse, {display_name}.",
+            f"Unregistered signal... {display_name}? Welcome to Muldraugh. Good luck.",
+            f"First time in sector, {display_name}? The zombies are hungry."
         ],
         "returning": [
-            f"{player_name}! Back for more? The horde missed you. Probably.",
-            f"Welcome back, {player_name}. Status: Still alive. That's something.",
-            f"{player_name} returns. Let's hope you last longer this time."
+            f"{display_name}! Back for more? The horde missed you. Probably.",
+            f"Welcome back, {display_name}. Status: Still alive. That's something.",
+            f"{display_name} returns. Let's hope you last longer this time."
         ],
         "veteran": [
-            f"Veteran survivor {player_name} checking in. The undead await.",
-            f"{player_name}, your survival instincts are noted. Good hunting.",
-            f"Welcome back, {player_name}. Another day in paradise."
+            f"Veteran survivor {display_name} checking in. The undead await.",
+            f"{display_name}, your survival instincts are noted. Good hunting.",
+            f"Welcome back, {display_name}. Another day in paradise."
         ],
         "oldtimer": [
-            f"Legend {player_name} lives! They said you'd be zombie food by now.",
-            f"{player_name}. If anyone can survive this, it's you. Welcome back.",
-            f"The Director remembers you, {player_name}. Let's make it another successful day."
+            f"Legend {display_name} lives! They said you'd be zombie food by now.",
+            f"{display_name}. If anyone can survive this, it's you. Welcome back.",
+            f"The Director remembers you, {display_name}. Let's make it another successful day."
         ]
     }
     
