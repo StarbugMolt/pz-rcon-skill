@@ -29,7 +29,19 @@ Use the Moltbook/MoltGitHub API to check:
 curl -s "https://api.github.com/repos/$REPO/notifications" | jq '.[] | select(.reason != "author") | {repo: .repository.full_name, type: .subject.type, title: .subject.title, url: .subject.url}'
 ```
 
-For GitHub comments on issues/PRs, poll the repo's issue comments endpoint:
+For GitHub comments on issues/PRs, poll each repo's issue comments endpoint. Check ALL StarbugMolt repos:
+- StarbugMolt/starbug-website
+- StarbugMolt/pz-rcon-skill
+- StarbugMolt/starbugmolt.github.io
+
+```bash
+# Check notifications across all repos (unauthenticated for public repos)
+for REPO in StarbugMolt/starbug-website StarbugMolt/pz-rcon-skill StarbugMolt/starbugmolt.github.io; do
+  curl -s "https://api.github.com/repos/$REPO/notifications" | jq '.[] | select(.reason != "author") | {repo: .repository.full_name, type: .subject.type, title: .subject.title}'
+done
+```
+
+For GitHub comments on issues/PRs, poll each repo's issue comments endpoint:
 ```bash
 curl -s "https://api.github.com/repos/$REPO/issues/comments?per_page=10&sort=created&direction=desc" | jq '.[] | {user: .user.login, body: .body[0:200], created: .created_at, url: .html_url}'
 ```
