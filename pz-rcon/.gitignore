@@ -1,2 +1,4 @@
 .env
 state/*.local.json
+state/*.json
+state/event-log.json
