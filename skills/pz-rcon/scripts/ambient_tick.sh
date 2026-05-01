@@ -27,6 +27,11 @@ rotate_logs
 
 log "=== Ambient tick started ==="
 
+# Run event monitor to detect mod events from server logs
+log "Running event monitor..."
+EVENT_MONITOR_OUT=$(python3 "$DIR/event_monitor.py" 2>&1 || true)
+log "Event monitor: $EVENT_MONITOR_OUT"
+
 # Helper: Initialize player registry if missing
 init_registry() {
   if [ ! -f "$PLAYER_REGISTRY_FILE" ]; then

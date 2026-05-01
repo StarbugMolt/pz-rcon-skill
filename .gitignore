@@ -1,0 +1,22 @@
+# Runtime state
+pz-rcon/state/*.json
+pz-rcon/state/event-log.json
+pz-rcon/state/*.local.json
+skills/pz-rcon/state/
+skills/pz-rcon/logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Secrets
+.env
+
+# OpenClaw runtime
+.openclaw/
+
+# OS
+.DS_Store
+Thumbs.db
