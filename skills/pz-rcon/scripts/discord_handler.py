@@ -80,7 +80,7 @@ def get_online_players():
 def parse_game_message(content, author_username):
     """
     Parse game chat message. 
-    The servertest bot relays game chat. Check if content contains player message.
+    The PZ-Molt-Bot (formerly servertest) relays game chat. Check if content contains player message.
     
     Possible formats:
     - [ingame_username]: message
@@ -90,7 +90,7 @@ def parse_game_message(content, author_username):
     Returns (username, message) or (None, None) if not a player message.
     """
     # Skip non-servertest messages (our own broadcasts)
-    if author_username.lower() not in ["servertest", "pz-server"]:
+    if author_username.lower() not in ["servertest", "pz-server", "pz-molt-bot"]:
         return None, None
     
     # Skip server status messages

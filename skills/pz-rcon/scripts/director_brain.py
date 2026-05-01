@@ -144,6 +144,139 @@ def handle_player_join_event(new_players):
     
     return messages
 
+# --- MOD CONTEXT & EVENT AWARENESS ---
+MOD_CONTEXT_FILE = os.path.join(SKILL_DIR, "state/mod-context.json")
+MOD_EVENTS_FILE = os.path.join(SKILL_DIR, "state/mod-events.json")
+
+def load_mod_context():
+    """Load installed mod context."""
+    try:
+        with open(MOD_CONTEXT_FILE) as f:
+            return json.load(f)
+    except:
+        return {"installed_mods": {}, "event_chains": {}, "reward_expansions": {}}
+
+def load_mod_events():
+    """Load detected mod events from event monitor."""
+    try:
+        with open(MOD_EVENTS_FILE) as f:
+            return json.load(f)
+    except:
+        return {"events": [], "weather": "unknown", "time_of_day": "night"}
+
+def get_mod_broadcasts(mod_ctx):
+    """Get all mod-aware broadcast templates."""
+    broadcasts = []
+    for mod_id, mod_data in mod_ctx.get("installed_mods", {}).items():
+        if mod_data.get("simon_can_reference"):
+            broadcasts.extend(mod_data.get("broadcasts", []))
+    return broadcasts
+
+def get_contextual_mod_broadcast(mod_ctx, weather, time_of_day):
+    """Pick a mod broadcast that matches current context."""
+    candidates = []
+    for mod_id, mod_data in mod_ctx.get("installed_mods", {}).items():
+        if not mod_data.get("simon_can_reference"):
+            continue
+        category = mod_data.get("category", "")
+        # Weather-aware matching
+        if weather in ["storm", "rain"] and category in ["camping", "water", "rv"]:
+            candidates.extend(mod_data.get("broadcasts", []))
+        # Night-aware matching
+        elif time_of_day in ["night", "late_night"] and category in ["danger", "power", "camping"]:
+            candidates.extend(mod_data.get("broadcasts", []))
+        # Daytime — anything goes
+        elif time_of_day in ["morning", "afternoon", "evening"]:
+            candidates.extend(mod_data.get("broadcasts", []))
+    return candidates
+
+def check_event_chains(mod_ctx, mod_events):
+    """Check if any event chains are triggered."""
+    recent_types = set()
+    for evt in mod_events.get("events", [])[-10:]:
+        recent_types.add(evt.get("type", ""))
+    
+    weather = mod_events.get("weather", "clear")
+    time_of_day = mod_events.get("time_of_day", "night")
+    
+    for chain_id, chain in mod_ctx.get("event_chains", {}).items():
+        triggers = chain.get("trigger", [])
+        matched = True
+        for t in triggers:
+            if t == "storm" and weather != "storm":
+                matched = False
+            elif t == "rain" and weather not in ["rain", "storm"]:
+                matched = False
+            elif t == "night" and time_of_day not in ["night", "late_night"]:
+                matched = False
+            elif t not in recent_types and t not in ["storm", "rain", "night", "player_in_wilderness", "player_has_rv"]:
+                matched = False
+        if matched:
+            return chain
+    return None
+
+def react_to_mod_events(mod_events, theme, session_id, target_player):
+    """React to unprocessed mod events with SIMON broadcasts."""
+    unprocessed = [e for e in mod_events.get("events", []) if not e.get("processed")]
+    if not unprocessed:
+        return False
+    
+    # Mark as processed
+    for evt in unprocessed:
+        evt["processed"] = True
+    
+    # React to the most significant event
+    severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    unprocessed.sort(key=lambda e: severity_order.get(e.get("severity", "low"), 99))
+    
+    event = unprocessed[0]
+    prefix = random.choice(theme.get("prefixes", ["SIMON:"]))
+    
+    reactions = {
+        "blackout": [
+            f"{prefix} Grid's down. Stay calm. Find a flashlight.",
+            f"{prefix} Power failure detected. If you hear thumping, it's about to get worse.",
+            f"{prefix} The lights just went out. Stay quiet. Stay alive."
+        ],
+        "power_restore": [
+            f"{prefix} Power's back. For now."
+        ],
+        "weather_storm": [
+            f"{prefix} Storm's here. Get inside. Lock the doors.",
+            f"{prefix} Thunder and lightning. If you're in the woods, find cover."
+        ],
+        "weather_rain": [
+            f"{prefix} Rain's picking up. If you're in the woods, get that tent up."
+        ],
+        "horde_detected": [
+            f"{prefix} Massive bio-signal convergence. This is not a drill.",
+            f"{prefix} The horde is moving. Everyone stay sharp."
+        ],
+        "structure_damage": [
+            f"{prefix} The walls are taking hits. More are coming.",
+            f"{prefix} Structure breach detected. Move. NOW."
+        ],
+        "player_death": [
+            f"{prefix} We lost someone. Signal dropped. Stay sharp, survivors."
+        ],
+        "airdrop": [
+            f"{prefix} Aircraft detected. Supply drop incoming. Mark your position."
+        ]
+    }
+    
+    reaction = random.choice(reactions.get(event["type"], [f"{prefix} Something's happening. Stay alert."]))
+    run_rcon(["msg", reaction])
+    print(f"MOD REACTION: {event['type']} -> {reaction}")
+    
+    if session_id and target_player:
+        nm_log_event(session_id, target_player, f"mod_{event['type']}", reaction)
+    
+    # Save updated events
+    with open(MOD_EVENTS_FILE, 'w') as f:
+        json.dump(mod_events, f, indent=2)
+    
+    return True
+
 # --- EXPANDED PLOT THEMES ---
 THEMES = {
     "MILITARY_COLLAPSE": {
@@ -386,6 +519,26 @@ def generate_creative_reward(theme, reward_type, target_player, state):
         run_rcon(["give", target_player, item, str(count)])
         print(f"REWARD: Supply {item} x{count} -> {target_player}")
     
+    # --- Mod-aware bonus items ---
+    mod_ctx = load_mod_context()
+    reward_exp = mod_ctx.get("reward_expansions", {})
+    
+    # Add camping supplies on wilderness themes
+    if random.randint(1, 100) <= 30:
+        camp_items = reward_exp.get("wilderness", {}).get("items", [])
+        if camp_items:
+            bonus = random.choice(camp_items)
+            run_rcon(["give", target_player, bonus, "1"])
+            print(f"BONUS: Wilderness {bonus} -> {target_player}")
+    
+    # Add cooking supplies
+    if random.randint(1, 100) <= 20:
+        cook_items = reward_exp.get("cooking", {}).get("items", [])
+        if cook_items:
+            bonus = random.choice(cook_items)
+            run_rcon(["give", target_player, bonus, "1"])
+            print(f"BONUS: Cooking {bonus} -> {target_player}")
+    
     state["pendingRewardRetries"] = 0  # Clear retry counter on successful delivery
     return True
 
@@ -414,6 +567,13 @@ def main():
     theme = THEMES[state.get("theme", "MILITARY_COLLAPSE")]
     now = int(time.time())
     state["tick"] += 1
+
+    # --- Load Mod Context & Events ---
+    mod_ctx = load_mod_context()
+    mod_events = load_mod_events()
+    weather = mod_events.get("weather", "unknown")
+    time_of_day = mod_events.get("time_of_day", "night")
+    print(f"MOD CONTEXT: {len(mod_ctx.get('installed_mods', {}))} mods, weather={weather}, time={time_of_day}")
 
     # Fetch current players
     players = []
@@ -469,6 +629,28 @@ def main():
         save_state(state)
         return
 
+    # --- React to Mod Events (priority: before mini-narration) ---
+    mod_reacted = react_to_mod_events(mod_events, theme, session_id, target_player)
+    if mod_reacted:
+        state["lastActionTs"] = now
+        save_state(state)
+        return
+
+    # --- Check Event Chains ---
+    chain = check_event_chains(mod_ctx, mod_events)
+    if chain and random.randint(1, 100) <= 40:
+        prefix = random.choice(theme.get("prefixes", ["SIM:"]))
+        chain_msg = chain.get("broadcast", "").replace("SIMON", prefix)
+        if not chain_msg.startswith(prefix):
+            chain_msg = f"{prefix} {chain_msg}"
+        run_rcon(["msg", chain_msg])
+        print(f"EVENT CHAIN: {chain_msg}")
+        if session_id and target_player:
+            nm_log_event(session_id, target_player, "event_chain", chain_msg)
+        state["lastActionTs"] = now
+        save_state(state)
+        return
+
     # --- Mini-Narration (avoids repeating recent session broadcasts) ---
     if players and random.randint(1, 100) <= 90:
         all_mini = [
@@ -481,6 +663,10 @@ def main():
             "Rumor: there's a supply cache near the river.",
             "Auto-scan complete. No new signatures."
         ]
+        # Add mod-aware broadcasts
+        mod_broadcasts = get_contextual_mod_broadcast(mod_ctx, weather, time_of_day)
+        if mod_broadcasts:
+            all_mini.extend(mod_broadcasts)
         # Filter out anything already broadcast in this session (within 2h)
         recent_contents = [b.split(": ", 1)[-1] if ": " in b else b for b in recent_session_broadcasts]
         pool = [m for m in all_mini if not any(m in rc for rc in recent_contents)]
@@ -553,6 +739,9 @@ def main():
             if wtype == "storm":
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Severe weather alert. Seek shelter immediately."])
                 run_rcon(["storm", "1"])
+                # Mod-aware storm reaction
+                if "CampInTheRain" in mod_ctx.get("installed_mods", {}):
+                    run_rcon(["msg", f"{random.choice(theme['prefixes'])} If you're in the woods, get that tent up. Now."])
             elif wtype == "rain":
                 intensity = random.randint(30, 80)
                 run_rcon(["msg", f"{random.choice(theme['prefixes'])} Precipitation increasing. Visibility dropping."])

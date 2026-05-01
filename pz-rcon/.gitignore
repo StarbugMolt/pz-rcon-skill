@@ -2,3 +2,8 @@
 state/*.local.json
 state/*.json
 state/event-log.json
+__pycache__/
+*.pyc
+skills/pz-rcon/logs/
+skills/pz-rcon/state/
+skills/pz-rcon/scripts/__pycache__/
