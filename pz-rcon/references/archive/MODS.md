@@ -1,5 +1,7 @@
 # Curated Mod List: "The AI Director's Cut" (Build 42 MP)
 
+> ⚠️ **OUTDATED** — This file targets B42.12-era mods. See `B42-17-MOD-LIST.md` in the same directory for the current B42.17 recommendation (May 2026).
+
 **Target:** Cinematic Roleplay, <10 Players, Immersive/Dynamic Events.
 **Philosophy:** Mods are chosen to give the "AI Director" (Game Master) levers to control pacing, tension, and rewards, rather than just adding "stuff."
 

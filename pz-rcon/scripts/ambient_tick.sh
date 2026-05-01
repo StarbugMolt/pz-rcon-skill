@@ -1,81 +1,98 @@
 #!/usr/bin/env bash
-# Ambient narrative tick (run every 5 minutes).
-# - Runs only when players are online
-# - Mostly sends atmospheric messages
-# - Rarely triggers a light world event
+# SIMON Ambient Tick v2 — Contextual Intelligence Layer
+# Gathers real server state and passes it to the AI agent for decision-making.
+# The AI generates contextual responses, not random ones.
 
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$DIR/.." && pwd)"
 STATE_DIR="$SKILL_DIR/state"
-STATE_FILE="$STATE_DIR/narrative-state.json"
+CONTEXT_FILE="$STATE_DIR/tick-context.json"
 mkdir -p "$STATE_DIR"
 
-if [ ! -f "$STATE_FILE" ]; then
-  cat > "$STATE_FILE" <<'JSON'
-{"tick":0,"lastActionTs":0,"lastEventTs":0}
-JSON
-fi
+# ─── 1. GATHER SERVER STATE ───────────────────────────────────────────
 
-PLAYERS_OUT="$($DIR/pz-rcon.sh players || true)"
+# Who's online?
+PLAYERS_OUT="$($DIR/pz-rcon.sh players 2>/dev/null || echo "Players connected (0):")"
 COUNT=$(printf "%s" "$PLAYERS_OUT" | sed -n 's/Players connected (\([0-9][0-9]*\)).*/\1/p' | head -n1)
 COUNT=${COUNT:-0}
 
+# Extract player names (lines after "Players connected" that aren't empty)
+PLAYER_NAMES=$(printf "%s" "$PLAYERS_OUT" | grep -v "Players connected" | grep -v "^$" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | tr '\n' ',' | sed 's/,$//')
+
 if [ "$COUNT" -le 0 ]; then
-  echo "No players online; ambient tick skipped."
-  exit 0
+    echo "No players online; tick skipped."
+    exit 0
 fi
 
+# What time is it in-game? (check via RCON if possible, else use real time)
+HOUR=$(date +%H)
+TIME_OF_DAY="day"
+if [ "$HOUR" -ge 22 ] || [ "$HOUR" -lt 6 ]; then
+    TIME_OF_DAY="night"
+elif [ "$HOUR" -ge 6 ] && [ "$HOUR" -lt 10 ]; then
+    TIME_OF_DAY="morning"
+elif [ "$HOUR" -ge 10 ] && [ "$HOUR" -lt 14 ]; then
+    TIME_OF_DAY="midday"
+elif [ "$HOUR" -ge 14 ] && [ "$HOUR" -lt 18 ]; then
+    TIME_OF_DAY="afternoon"
+elif [ "$HOUR" -ge 18 ] && [ "$HOUR" -lt 22 ]; then
+    TIME_OF_DAY="evening"
+fi
+
+# Load previous state
+TICK=0
+LAST_EVENT_TS=0
+LAST_WEATHER=""
+MOOD="calm"
+NARRATIVE_THREAD=""
+if [ -f "$CONTEXT_FILE" ]; then
+    TICK=$(python3 -c "import json; d=json.load(open('$CONTEXT_FILE')); print(d.get('tick',0))" 2>/dev/null || echo 0)
+    LAST_EVENT_TS=$(python3 -c "import json; d=json.load(open('$CONTEXT_FILE')); print(d.get('lastEventTs',0))" 2>/dev/null || echo 0)
+    LAST_WEATHER=$(python3 -c "import json; d=json.load(open('$CONTEXT_FILE')); print(d.get('lastWeather',''))" 2>/dev/null || echo "")
+    MOOD=$(python3 -c "import json; d=json.load(open('$CONTEXT_FILE')); print(d.get('mood','calm'))" 2>/dev/null || echo "calm")
+    NARRATIVE_THREAD=$(python3 -c "import json; d=json.load(open('$CONTEXT_FILE')); print(d.get('narrativeThread',''))" 2>/dev/null || echo "")
+fi
+TICK=$((TICK + 1))
 NOW=$(date +%s)
-read -r TICK LAST_ACTION LAST_EVENT < <(python3 - "$STATE_FILE" <<'PY'
-import json,sys
-p=sys.argv[1]
-with open(p,'r',encoding='utf-8') as f:
-    d=json.load(f)
-print(d.get('tick',0), d.get('lastActionTs',0), d.get('lastEventTs',0))
-PY
-)
+SECONDS_SINCE_EVENT=$((NOW - LAST_EVENT_TS))
 
-TICK=$((TICK+1))
-R=$((RANDOM%100))
-DO_EVENT=0
-
-# Rare events: ~15% chance, and not more than once every 20 minutes.
-if [ "$R" -lt 15 ] && [ $((NOW-LAST_EVENT)) -ge 1200 ]; then
-  DO_EVENT=1
+# Load recent player requests
+RECENT_REQUESTS="{}"
+if [ -f "$STATE_DIR/recent-requests.json" ]; then
+    RECENT_REQUESTS=$(cat "$STATE_DIR/recent-requests.json" 2>/dev/null || echo "{}")
 fi
 
-if [ "$DO_EVENT" -eq 1 ]; then
-  case $((RANDOM%3)) in
-    0)
-      $DIR/pz-rcon.sh msg "Emergency band chatter: distant rotter movement reported west of your position." ;;
-    1)
-      $DIR/pz-rcon.sh msg "Knox weather alert: electrical instability detected. Keep your head down." ;;
-    2)
-      $DIR/pz-rcon.sh msg "You hear something unnatural in the distance. Stay sharp, survivors." ;;
-  esac
-  case $((RANDOM%3)) in
-    0) $DIR/pz-rcon.sh thunder ;;
-    1) $DIR/pz-rcon.sh gunshot ;;
-    2) $DIR/pz-rcon.sh lightning ;;
-  esac
-  LAST_EVENT=$NOW
-else
-  case $((RANDOM%6)) in
-    0) $DIR/pz-rcon.sh msg "Emergency band update: movement is light for now. Use the lull wisely." ;;
-    1) $DIR/pz-rcon.sh msg "Radio static clears: keep your lights low and your exits planned." ;;
-    2) $DIR/pz-rcon.sh msg "Survivor tip: overconfidence is a short walk to becoming lunch." ;;
-    3) $DIR/pz-rcon.sh msg "The wind carries no comfort today. Travel in caution, not in hope." ;;
-    4) $DIR/pz-rcon.sh msg "Operations note: roads are safer than forests, until they are not." ;;
-    5) $DIR/pz-rcon.sh msg "Quiet skies over Knox County. Enjoy it before reality remembers you." ;;
-  esac
+# Load player profiles
+PLAYER_PROFILES="{}"
+if [ -f "$STATE_DIR/player-profiles.json" ]; then
+    PLAYER_PROFILES=$(cat "$STATE_DIR/player-profiles.json" 2>/dev/null || echo "{}")
 fi
 
-python3 - "$STATE_FILE" "$TICK" "$NOW" "$LAST_EVENT" <<'PY'
-import json,sys
-p,tick,now,last_event=sys.argv[1],int(sys.argv[2]),int(sys.argv[3]),int(sys.argv[4])
-with open(p,'w',encoding='utf-8') as f:
-    json.dump({"tick":tick,"lastActionTs":now,"lastEventTs":last_event},f)
-PY
+# ─── 2. BUILD CONTEXT PAYLOAD ────────────────────────────────────────
 
-echo "Ambient tick complete (players=$COUNT, event=$DO_EVENT)."
+CONTEXT=$(python3 -c "
+import json, sys
+
+ctx = {
+    'tick': $TICK,
+    'timestamp': $NOW,
+    'players': {
+        'count': $COUNT,
+        'names': '$PLAYER_NAMES'.split(',') if '$PLAYER_NAMES' else []
+    },
+    'timeOfDay': '$TIME_OF_DAY',
+    'serverHour': $HOUR,
+    'lastWeather': '$LAST_WEATHER',
+    'mood': '$MOOD',
+    'narrativeThread': '''$NARRATIVE_THREAD''',
+    'secondsSinceLastEvent': $SECONDS_SINCE_EVENT,
+    'recentRequests': json.loads('''$RECENT_REQUESTS'''),
+    'playerProfiles': json.loads('''$PLAYER_PROFILES''')
+}
+print(json.dumps(ctx, indent=2))
+")
+
+echo "$CONTEXT" > "$CONTEXT_FILE"
+echo "Context gathered (tick=$TICK, players=$COUNT, time=$TIME_OF_DAY, mood=$MOOD)"
+echo "$CONTEXT"
