@@ -39,8 +39,19 @@ if [ -z "$PASSWORD" ]; then
     exit 1
 fi
 
+# Send an RCON command to the server.
+# - Single-arg call  → pass through unchanged (caller has already formatted/quoted)
+# - Multi-arg call   → join with single spaces, wrapping any whitespace-bearing arg
+#                       in double quotes so it stays one token on the wire.
+# Pre-formatted calls (e.g. `rcon_cmd "servermsg \"FOO\""`) used to be
+# double-wrapped by this function, producing `"servermsg "FOO""` which the
+# server rejected as an unknown command. The single-arg shortcut fixes that.
 rcon_cmd() {
-    # Join all args into a single command string
+    if [ "$#" -eq 1 ]; then
+        # Already-formatted; trust the caller's quoting.
+        rcon -a "$HOST:$PORT" -p "$PASSWORD" "$1"
+        return
+    fi
     local cmd=""
     for arg in "$@"; do
         if [[ "$arg" =~ [[:space:]] ]]; then
