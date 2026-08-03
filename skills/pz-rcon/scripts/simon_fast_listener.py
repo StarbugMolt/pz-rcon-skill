@@ -135,18 +135,64 @@ def update_greet_dedupe(player_name):
 # so #pz-molt messages are mirrored to in-game chat automatically.
 # RCON servermsg is no longer needed for broadcasts and is reserved
 # for game-state mutations only (give, addvehicle, etc.).
-async def fire_greeting(channel, player_name):
+async def fire_greeting(channel, player_name, max_retries=2):
+    """
+    Fire Discord greeting with retry on transient failures.
+    
+    Retries on: discord.HTTPException, discord.ConnectionError, OSError
+    (covers 5xx Discord API blips, gateway reconnects, brief socket drops).
+    
+    Does NOT retry on: discord.Forbidden (permanent — missing perms),
+    discord.NotFound (bad channel id).
+    
+    Returns True on success, False if all attempts failed.
+    """
+    import discord
+    
     greeting = generate_greeting(player_name)
     print(f"Greeting {player_name}: {greeting}")
     
-    try:
-        await channel.send(greeting)
-        update_greet_dedupe(player_name)
-        print(f"Greeting sent successfully (Discord → PZ chat relay → in-game)")
-        return True
-    except Exception as e:
-        print(f"ERROR: Discord send failed: {e}", file=sys.stderr)
-        return False
+    # Errors worth retrying — transient transport/HTTP issues only
+    retryable = (
+        getattr(discord, "HTTPException", Exception),
+        getattr(discord, "ConnectionError", Exception),
+        getattr(discord, "GatewayNotFound", Exception),
+        OSError,
+        asyncio.TimeoutError,
+    )
+    
+    last_error = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            await channel.send(greeting)
+            update_greet_dedupe(player_name)
+            print(f"Greeting sent successfully (Discord → PZ chat relay → in-game)")
+            return True
+        except retryable as e:
+            last_error = e
+            if attempt < max_retries:
+                backoff = 3 * attempt  # 3s, 6s
+                print(
+                    f"WARNING: Discord send attempt {attempt}/{max_retries} failed "
+                    f"({type(e).__name__}: {e}); retrying in {backoff}s",
+                    file=sys.stderr,
+                )
+                await asyncio.sleep(backoff)
+        except Exception as e:
+            # Non-retryable (Forbidden, NotFound, ValueError, etc.) — log and give up
+            print(
+                f"ERROR: Discord send failed (non-retryable, {type(e).__name__}): {e}",
+                file=sys.stderr,
+            )
+            return False
+    
+    # All retries exhausted
+    print(
+        f"ERROR: Discord send failed after {max_retries} attempts "
+        f"(last error: {type(last_error).__name__}: {last_error})",
+        file=sys.stderr,
+    )
+    return False
 
 # Parse connection message
 def parse_connection_message(content):
@@ -181,18 +227,40 @@ async def main():
     
     @client.event
     async def on_ready():
-        print(f"SIMON Fast Listener connected as {client.user}")
+        # Reconnect heartbeat — if daemon was bouncing or gateway dropped, this
+        # fires again and updates state file. Logs loudly so we notice.
+        print(f"=== SIMON Fast Listener on_ready ===")
+        print(f"Connected as {client.user} (id={client.user.id})")
         print(f"Monitoring channel {CHANNEL_ID}")
+        print(f"Gateway latency: {client.latency*1000:.0f}ms")
         
         # Update state file
         DISCORD_MESSAGE_STATE_FILE.write_text(json.dumps({
             "last_message_id": None,
             "last_check_ts": int(time.time()),
-            "listener_started": int(time.time())
+            "listener_started": int(time.time()),
+            "user_id": str(client.user.id),
+            "latency_ms": round(client.latency * 1000),
         }, indent=2))
     
     @client.event
     async def on_message(message):
+        try:
+            await _handle_message(message, client)
+        except Exception as e:
+            # Outermost safety net — any uncaught error in the handler chain
+            # (parse, dedupe, delta write, etc.) logs and returns instead of
+            # killing the message dispatch loop. Without this, a transient
+            # exception silently disables all subsequent message handling
+            # until the daemon is restarted.
+            print(
+                f"ERROR: Uncaught exception in on_message for "
+                f"channel={message.channel.id} author={getattr(message.author, 'id', '?')}: "
+                f"{type(e).__name__}: {e}",
+                file=sys.stderr,
+            )
+
+    async def _handle_message(message, client):
         # Only process messages from the target channel
         if message.channel.id != CHANNEL_ID:
             return
