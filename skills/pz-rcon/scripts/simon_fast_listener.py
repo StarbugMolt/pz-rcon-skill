@@ -112,9 +112,12 @@ CHAT_RESPONSES = {
         "All quiet on the western fence, {player}. Too quiet. Simon, out.",
     ],
     "help": [
-        "{player}, only help the dead don't ask for. Bandage up, hunker down.\nSimon, out.",
-        "Help, {player}? You're it. The bunker's got canned beans and bad news.\nSimon, out.",
-        "Help's a luxury, {player}. Survival's the only currency. Simon, out.",
+        "Thirsty, {player}? Toilets, bathtubs, kitchen sinks — any container's got water if you look. Simon, out.",
+        "Hungry, {player}? Check fridges, freezers, garbage bags. Canned goods last longest. Simon, out.",
+        "Hurt, {player}? Bathroom cabinets, first aid kits, sometimes car trunks. Bandages and painkillers. Simon, out.",
+        "Bleeding out, {player}? Sheets, rags, anything clean. Stop the bleed first, then worry about infection. Simon, out.",
+        "Need water, {player}? Rain barrels, rivers, lakes — boil it first if you can. Simon, out.",
+        "Help's coming, {player} — but it's coming from inside you. The bunker's got radio, not rescue. Simon, out.",
     ],
     "question": [
         "Question logged, {player}. The dead don't have answers, but the station\nmight. Simon, out.",
@@ -282,6 +285,34 @@ def parse_connection_message(content):
         return match.group(1)
     
     return None
+
+# Parse player name from PZ Discord chat relay content.
+# Format: "PlayerName: message text" — e.g. "StarbugStone: simon you there?"
+# Returns (player_name, message_text) or (None, original_content) if no prefix.
+def parse_pz_chat_player(content):
+    """
+    Extract player name from PZ chat relay content.
+    
+    The PZ Discord chat relay posts as bot 'servertest#9150' but prepends the
+    actual player's name to the message: 'StarbugStone: hey simon'. We need
+    the real player name (not the bot's display name) for chat responses.
+    """
+    import re
+    
+    if not content or not isinstance(content, str):
+        return None, content
+    
+    # Match "PlayerName: rest of message" at the start. PlayerName can have
+    # spaces but not colons. Be greedy on the rest.
+    match = re.match(r'^([^:\n]{1,32}):\s+(.+)$', content.strip(), re.DOTALL)
+    if match:
+        player_name = match.group(1).strip()
+        message_text = match.group(2).strip()
+        # Sanity check: skip if player_name looks like a timestamp or number
+        if player_name and not player_name.isdigit():
+            return player_name, message_text
+    
+    return None, content
 
 # Per-author chat-response cooldown (in-memory; cleared on daemon restart).
 # Key: str(author_id), Value: int(last_response_ts).
@@ -531,25 +562,30 @@ async def main():
         
         # Otherwise: chat response path. PZ in-game chat messages are mirrored
         # to #pz-molt via the Discord chat relay and arrive here as regular
-        # messages. Decide if SIMON should respond.
+        # messages. The relay posts as bot 'servertest#9150' but prefixes the
+        # actual player name to the content: "StarbugStone: hey simon".
+        # Parse the real player name out so the response addresses them by name.
+        parsed_player, chat_text = parse_pz_chat_player(message.content)
+        effective_player = parsed_player or message.author.display_name
+        
         should_respond, trigger = should_respond_to_chat(
-            message.content, message.author.id
+            chat_text, message.author.id
         )
         if should_respond:
-            print(f"Chat responder triggered ({trigger}) for {message.author.display_name}: {message.content[:60]}")
+            print(f"Chat responder triggered ({trigger}) for {effective_player}: {chat_text[:60]}")
             channel = client.get_channel(CHANNEL_ID)
             if channel is None:
                 print(f"ERROR: Could not resolve channel {CHANNEL_ID}", file=sys.stderr)
             else:
                 await fire_chat_response(
                     channel=channel,
-                    content=message.content,
-                    player_name=message.author.display_name,
+                    content=chat_text,
+                    player_name=effective_player,
                     trigger=trigger,
                     author_id=message.author.id,
                 )
         else:
-            print(f"Chat message ignored (no trigger): {message.author.display_name}: {message.content[:60]}")
+            print(f"Chat message ignored (no trigger): {effective_player}: {chat_text[:60]}")
         
         # Always update message state so we know what we've seen
         try:
