@@ -4,7 +4,8 @@
 - **Mod ID:** `BCR-IAmNotYourMom`
 - **Author:** Lenniitsch (open source, MIT, addon reference impl)
 - **Build target:** B42.19+ Stable, SP + MP
-- **Status:** ✅ VERIFIED — addon only, no new items
+- **FTP folder:** `mods/BCR-IAmNotYourMom/42.19/media/lua/shared/`
+- **Status:** ✅ VERIFIED — pure lua addon (shared/ only), no `media/scripts` or `media/lua/client`
 - **Requires:** `BCR` (Body Count Rewards) loaded first
 
 ## What it adds

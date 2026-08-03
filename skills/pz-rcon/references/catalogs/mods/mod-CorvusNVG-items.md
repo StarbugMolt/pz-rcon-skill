@@ -5,8 +5,9 @@
 - **Mod ID:** `CorvusNVG`
 - **Author:** Corvus
 - **Build target:** B42 only, multiplayer compatible
-- **Updated:** 1 Aug 2026 (active dev)
-- **Status:** ⚠️ PARTIAL VERIFICATION — new items exist but exact script IDs unconfirmed
+- **Updated:** 2 Aug 2026 (mtime on server)
+- **FTP folder:** `mods/NVG/42/media/scripts/generated/` (note: Steam folder is `CorvusNVG`, server folder is `NVG`)
+- **Status:** ✅ VERIFIED — 3 items + 3 models extracted from `media/scripts/generated/NVGItems.txt` and `NVGModels.txt`
 
 ## What it adds
 
@@ -30,25 +31,24 @@ Wearable AN/PVS-7A night-vision unit on its own headstrap, plus two Surefire hel
 
 ## Inferred script IDs (NEEDS LIVE VERIFICATION)
 
-> Steam page does not publish script IDs. Verify against `WorkshopItems/3769335201/contents/mods/CorvusNVG/media/scripts/` on the server before relying on these for `additem`.
+> ✅ RESOLVED 2026-08-03 — verified via FTP. All 3 items are declared in `media/scripts/generated/NVGItems.txt` under `module NVG`. The script prefix is `NVG.`, not `CorvusNVG.` (the mod's internal namespace is shorter than the workshop ID).
 
-| Inferred ID | Type |
-|-------------|------|
-| `CorvusNVG.NVGPVS7` | AN/PVS-7A NVG (head item) |
-| `CorvusNVG.Surefire6C` | Surefire 6C flashlight |
-| `CorvusNVG.Surefire6P` | Surefire 6P flashlight |
-| `CorvusNVG.Headstrap` | Optional — base strap item |
+| Script ID | Source | Type |
+|-----------|--------|------|
+| `NVG.Surefire6C` | `media/scripts/generated/NVGItems.txt` | Surefire 6C flashlight (15m range, dim) |
+| `NVG.Surefire6P` | `media/scripts/generated/NVGItems.txt` | Surefire 6P flashlight (18m range, brighter) |
+| `NVG.ANPVS7A` | `media/scripts/generated/NVGItems.txt` | AN/PVS-7A NVG (headstrap-mounted, eyes slot) |
+| `NVG.ANPVS7Strap` | `media/scripts/generated/NVGItems.txt` | Eyewear strap item (accessory) |
 
-If those don't resolve, search the script dir for `module CorvusNVG` or item files (`items_corvusnvg.txt`).
+> **RCon note:** `pz-rcon.sh give <player> ANPVS7A 1` accepts the bare name (the RCon wrapper strips the `NVG.` prefix automatically). If it fails, use the full prefix `NVG.ANPVS7A`.
 
-## SIMON can spawn / give (best guess, verify first)
+## SIMON can spawn / give
 
 ```bash
-# Verify item script exists in container first via:
-# grep -r "CorvusNVG\.NVG" /path/to/steamapps/workshop/content/108600/3769335201/contents/mods/CorvusNVG/media/scripts/
-
-pz-rcon.sh give <player> CorvusNVG.NVGPVS7 1
-pz-rcon.sh give <player> CorvusNVG.Surefire6P 1
+pz-rcon.sh give <player> ANPVS7A 1
+pz-rcon.sh give <player> Surefire6P 1
+pz-rcon.sh give <player> Surefire6C 1
+pz-rcon.sh give <player> ANPVS7Strap 1
 ```
 
 ## Narrative use

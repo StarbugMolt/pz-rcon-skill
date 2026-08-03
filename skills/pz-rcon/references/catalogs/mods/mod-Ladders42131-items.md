@@ -5,7 +5,9 @@
 - **Mod ID:** ⚠️ **`Ladders4220`** (NOT `Ladders42131` — see "Naming note" below)
 - **Author:** nyamops (unofficial B42.20 update of co`'s original)
 - **Build target:** B42.20 singleplayer AND multiplayer
-- **Status:** ⚠️ PARTIAL VERIFICATION — collapsible ladder craftable, exact script ID unconfirmed
+- **FTP folder:** `mods/Ladders/{common,42.16,42.20}/` (note: Steam folder is `Ladders42131`, server folder is `Ladders`)
+- **Status:** ✅ VERIFIED — 4 items + 2 models + 3 recipes extracted from `mods/Ladders/common/media/scripts/items/items_ladder.txt`
+- **Filename note:** The mod is published under workshop folder `Ladders42131` but the internal `mod.id` is `Ladders4220` (B42.20 version-suffix). Both confirm the dual naming.
 
 ## What it adds
 
@@ -13,24 +15,36 @@ Restores ladder-climbing functionality in B42.20. Hold `E` to climb down. Must b
 
 > **⚠️ Re-enable notice from author:** *"PLS re-enable the mod in your game/server"*. After PZ patches you'd need to disable+enable to refresh.
 
-## Items (1, craftable)
-- Collapsible ladder — recipe only (no loot spawn by default)
+## Items (4 declared, 1 craftable variant)
 
-## Inferred script IDs (NEEDS LIVE VERIFICATION)
+| Script ID | Type | Notes |
+|-----------|------|-------|
+| `Base.SteelLadder` | `base:moveable` | Static steel ladder, weight 20, Furniture category |
+| `Base.WoodenLadder` | `base:moveable` | Static wooden ladder, weight 20, Furniture category |
+| `Base.CollapsibleLadder` | `base:moveable` | Collapsible ladder, weight 10, craftable via `CraftCollapsibleLadder` |
+| `Base.CollapsibleLadder_Packed` | `base:normal` | Packed ladder (carried), weight 5, HelmetFlashlight attachment slot |
 
-> The Steam name is "Ladders42131" but the actual Mod ID inside the mod folder is `Ladders4220`. Verify both on the server filesystem before relying on these.
+## Craft recipes (3)
 
-| Inferred ID | Notes |
-|-------------|-------|
-| `Ladders4220.CollapsibleLadder` | Primary item |
-| `Ladders4220.Ladder` | Alternate (verify) |
+| Recipe | Inputs | Output | Time |
+|--------|--------|--------|------|
+| `Base.CraftCollapsibleLadder` | screwdriver + 4 Screws + 4 IronBar/SteelBar | `Base.CollapsibleLadder_Packed` | 50 ticks, Maintenance:2 |
+| `Base.PackCollapsibleLadder` | `Base.CollapsibleLadder` | `Base.CollapsibleLadder_Packed` | 50 ticks |
+| `Base.UnpackCollapsibleLadder` | `Base.CollapsibleLadder_Packed` | `Base.CollapsibleLadder` | 50 ticks |
 
-To verify: `find steamapps/workshop/content/108600/3629835761 -name "*.txt" | xargs grep -l Ladders4220`
+> The script declaration is `module Base { ... }` — NOT `module Ladders4220`. So the actual game item prefix is `Base.CollapsibleLadder`, not `Ladders4220.CollapsibleLadder`. The `Ladders4220` name is the mod's namespace used internally for the `tiledef` and craft category, not the item prefix.
 
-## SIMON can spawn / give (best guess, verify first)
+## SIMON can spawn / give
 
 ```bash
-pz-rcon.sh give <player> Ladders4220.CollapsibleLadder 1
+# Give the packed ladder (carried item)
+pz-rcon.sh give <player> CollapsibleLadder_Packed 1
+
+# Give the unpacked ladder (world object)
+pz-rcon.sh give <player> CollapsibleLadder 1
+
+# Force-spawn a static ladder at a tile (admin-lifecycle only)
+pz-rcon.sh addobject CollapsibleLadder <x> <y> <z>
 ```
 
 ## Caveats

@@ -4,7 +4,8 @@
 - **Mod ID:** `87fordB700`
 - **Author:** KI5 (commission for Project Apocalypse Community)
 - **Build target:** B41.78.16 (SP+MP), B42.12 (SP), B42.13+ (SP+MP)
-- **Status:** ✅ VERIFIED — vehicle IDs published on Steam page
+- **FTP folder:** `mods/87fordB700/42.13/` (also 42.0, common)
+- **Status:** ✅ VERIFIED — script IDs extracted from server `/mods/87fordB700/42.13/media/scripts/vehicles/*.txt`
 
 ## What it adds
 

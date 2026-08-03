@@ -4,7 +4,8 @@
 - **Mod ID:** `Dry&Cure`
 - **Author:** darylmastergg
 - **Build target:** B42.20, standalone
-- **Status:** ⚠️ PARTIAL VERIFICATION — 3 stations + 5 dried food items, exact script IDs unconfirmed
+- **FTP folder:** `mods/Cure/` (Steam folder is `Dry&Cure`, server folder is `Cure`)
+- **Status:** ⚠️ UNVERIFIED — server mod folder is **empty/corrupt** (FTP returns 550 on `mods/Cure/` and `mods/Cure/mod.info`). Steam client will need to re-download before scripts can be inspected. All IDs below remain inferred from Steam page.
 
 ## What it adds
 
@@ -58,7 +59,7 @@ Each station has 3 art states: empty / processing / finished. Professional also 
 
 ## Inferred script IDs (NEEDS LIVE VERIFICATION)
 
-> The Steam page does not publish script IDs. Verify against the server filesystem before relying on these.
+> ⚠️ 2026-08-03 — **server-side, the mod folder is empty**. FTP `cwd mods/Cure/` returns 550 and `retr Cure/mod.info` returns 550 too. Steam client will need to re-download the mod before scripts can be inspected. The IDs below are inferred from the Steam page description.
 
 **Stations (likely `Base.*` prefixed, since they're placeable world objects):**
 | Inferred ID | Type |
@@ -76,7 +77,7 @@ Each station has 3 art states: empty / processing / finished. Professional also 
 | `DryAndCure.DriedMeatCuts` | Standard cuts |
 | `DryAndCure.DriedMeatLarge` | Large pieces |
 
-To verify: `find steamapps/workshop/content/108600/3776848101 -name "*.txt" | xargs grep -l DryAndCure` and check `media/scripts/`.
+To verify once Steam re-downloads: `find steamapps/workshop/content/108600/3776848101 -name "*.txt" | xargs grep -l DryAndCure` and check `media/scripts/`.
 
 ## SIMON vehicle spawn / give (best guess, verify first)
 

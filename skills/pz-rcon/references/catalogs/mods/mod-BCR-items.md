@@ -3,8 +3,10 @@
 - **Workshop ID:** 3660382016
 - **Mod ID:** `BCR`
 - **Author:** Lenniitsch (open source, MIT license)
-- **Build target:** B42.13+ Stable, SP + MP
-- **Status:** ✅ VERIFIED — no spawnable items, perk/trait progression mod
+- **Build target:** B42.19 (also 42.13, 42.16 in server cache)
+- **FTP folder:** `mods/BodyCountRewards/42.19/media/lua/{client,server,shared}/`
+- **Status:** ✅ VERIFIED — lua-only mod (client/server/shared), no `media/scripts/items`
+- **MP-safe:** yes (server has both client and server lua components)
 
 ## What it adds
 

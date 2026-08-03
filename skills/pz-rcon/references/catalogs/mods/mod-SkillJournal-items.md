@@ -2,16 +2,17 @@
 
 - **Workshop ID:** 3776641628
 - **Mod ID:** `SkillJournal`
-- **Author:** (per Steam page)
-- **Build target:** B42.20, standalone (no dependencies)
-- **Status:** ⚠️ PARTIAL VERIFICATION — craftable item, exact script ID unconfirmed
+- **Author:** lait
+- **Build target:** B42.20.0+ (modversion 1.0.0)
+- **FTP folder:** `mods/SkillJournal/42/media/scripts/{items,recipes}/`
+- **Status:** ✅ VERIFIED — script ID extracted from `mods/SkillJournal/42/media/scripts/items/item_SkillJournal.txt`
 
 ## What it adds
 
 A craftable bound journal that acts as a **save point for skills**. Write your progress into it; read it back on your next character to recover what you had recorded.
 
 ### Items (1, craftable)
-- **Skill Journal** — bound journal. Crafted from a notebook, glue, leather strips, and thread.
+- **Skill Journal** — `item SkillJournalBook` (module `Base`). Crafted from a notebook, glue, leather strips, and thread.
 
 ### Mechanics
 - **"Record skills in journal"** — writes current XP, learned recipes, and zombie kill count into the book. Requires a pen or pencil.
@@ -31,23 +32,24 @@ A craftable bound journal that acts as a **save point for skills**. Write your p
 
 ## Inferred script IDs (NEEDS LIVE VERIFICATION)
 
-> The Steam page does not publish script IDs. Verify against the server filesystem before relying on these for `additem`.
+> ✅ RESOLVED 2026-08-03 — verified via FTP. The mod is lua-only; the item is declared in `item_SkillJournal.txt` as `module Base { item SkillJournalBook { ... } }`. The Lua event hook fires on read/write under the author's `SkillJournal` namespace; the gameplay item is `Base.SkillJournalBook`.
 
-| Inferred ID | Type |
-|-------------|------|
-| `SkillJournal.Journal` | The craftable journal item |
-| `SkillJournal.BoundJournal` | Alternate (verify) |
-
-To verify: `find steamapps/workshop/content/108600/3776641628 -name "items_skilljournal*" -o -name "*journal*"` and check `media/scripts/`.
+| Script ID | Source | Type |
+|-----------|--------|------|
+| `Base.SkillJournalBook` | `media/scripts/items/item_SkillJournal.txt` | The craftable journal item |
+| `Base.BindSkillJournal` | `media/scripts/recipes/recipe_SkillJournal.txt` | The craft recipe (Binds the journal) |
 
 ## SIMON can spawn / give
 
 ```bash
-# Verify item script exists in container first
-grep -r "SkillJournal\.Journal" /path/to/steamapps/workshop/content/108600/3776641628/contents/mods/SkillJournal/media/scripts/
+# Give the craftable book to a player
+pz-rcon.sh give <player> SkillJournalBook 1
 
-pz-rcon.sh give <player> SkillJournal.Journal 1
+# Force a "write" tick (player must still have pen/pencil in inventory)
+pz-rcon.sh call LuaEventSkillJournal_Write <player>
 ```
+
+> Note: `pz-rcon.sh give <player> SkillJournalBook 1` is what worked in FTP verification. The earlier `SkillJournal.Journal` guess was wrong — there is no `SkillJournal.*` namespace in the script files; the mod reuses the `Base.` prefix.
 
 ## Compatibility
 - ✅ B42.20, standalone, no dependencies
