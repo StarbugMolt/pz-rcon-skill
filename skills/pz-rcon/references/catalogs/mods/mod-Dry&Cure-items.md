@@ -4,8 +4,8 @@
 - **Mod ID:** `Dry&Cure`
 - **Author:** darylmastergg
 - **Build target:** B42.20, standalone
-- **FTP folder:** `mods/Cure/` (Steam folder is `Dry&Cure`, server folder is `Cure`)
-- **Status:** ⚠️ UNVERIFIED — server mod folder is **empty/corrupt** (FTP returns 550 on `mods/Cure/` and `mods/Cure/mod.info`). Steam client will need to re-download before scripts can be inspected. All IDs below remain inferred from Steam page.
+- **FTP folder:** `mods/Dry & Cure/` (with spaces — URL-encode as `Dry%20%26%20Cure`)
+- **Status:** ✅ VERIFIED 2026-08-03 (post-restart) — script IDs extracted from `mods/Dry & Cure/42/media/scripts/DC_*.txt`
 
 ## What it adds
 
@@ -57,40 +57,46 @@ Tools retain durability after construction (light loss).
 ### Visual states
 Each station has 3 art states: empty / processing / finished. Professional also has a roof + ground shadow (weather protection visual cue).
 
-## Inferred script IDs (NEEDS LIVE VERIFICATION)
+## Verified script IDs (2026-08-03)
 
-> ⚠️ 2026-08-03 — **server-side, the mod folder is empty**. FTP `cwd mods/Cure/` returns 550 and `retr Cure/mod.info` returns 550 too. Steam client will need to re-download the mod before scripts can be inspected. The IDs below are inferred from the Steam page description.
+> ✅ RESOLVED — server folder is now populated as `Dry & Cure` (with spaces, URL-encode as `Dry%20%26%20Cure`). All script IDs extracted from `mods/Dry & Cure/42/media/scripts/DC_*.txt`.
 
-**Stations (likely `Base.*` prefixed, since they're placeable world objects):**
-| Inferred ID | Type |
-|-------------|------|
-| `Base.DryCureStationBasic` | Basic drying station |
-| `Base.DryCureStationAdvanced` | Advanced drying station |
-| `Base.DryCureStationProfessional` | Professional drying station |
+**Dried food items (module `DryCure`):**
+| Script ID | Display name | Notes |
+|-----------|----------|-------|
+| `DryCure.DC_DriedFish` | Dried Fish | base:food, hunger -28, weight 0.30 |
+| `DryCure.DC_PoultryStrip` | Dried Poultry | base:food, hunger -20, weight 0.20 |
+| `DryCure.DC_LargeDriedMeat` | Dried Large Meat | base:food, hunger -45, weight 0.75 |
+| `DryCure.DC_DryMeatStrip` | Dried Meat Strip | base:food, hunger -28, weight 0.26 |
+| `DryCure.DC_DryMeatPiece` | Dried Meat Piece | base:food, hunger -60, weight 0.75 |
 
-**Dried foods:**
-| Inferred ID | Type |
-|-------------|------|
-| `DryAndCure.DriedFish` | Dried fish generic |
-| `DryAndCure.DriedPoultry` | Dried poultry |
-| `DryAndCure.DriedMeatStrips` | Strips |
-| `DryAndCure.DriedMeatCuts` | Standard cuts |
-| `DryAndCure.DriedMeatLarge` | Large pieces |
+**Models (module `DryCure`):**
+- `DryCure.DC_DriedFish_Model`, `DryCure.DC_PoultryStrip_Model`, `DryCure.DC_LargeDriedMeat_Model`, `DryCure.DC_DryMeatStrip_Model`, `DryCure.DC_DryMeatPiece_Model`
 
-To verify once Steam re-downloads: `find steamapps/workshop/content/108600/3776848101 -name "*.txt" | xargs grep -l DryAndCure` and check `media/scripts/`.
+**Craft recipes (module `Base`, 15 total — 5 protein types × 3 station tiers):**
+- Basic: `Base.DC_Basic_DryFish`, `DC_Basic_DryPoultry`, `DC_Basic_DryLargeMeat`, `DC_Basic_DryMeatStrips`, `DC_Basic_DrySmallGame`
+- Advanced: `Base.DC_Advanced_DryFish`, `DC_Advanced_DryPoultry`, `DC_Advanced_DryLargeMeat`, `DC_Advanced_DryMeatStrips`, `DC_Advanced_DrySmallGame`
+- Professional: `Base.DC_Professional_DryFish`, `DC_Professional_DryPoultry`, `DC_Professional_DryLargeMeat`, `DC_Professional_DryMeatStrips`, `DC_Professional_DrySmallGame`
 
-## SIMON vehicle spawn / give (best guess, verify first)
+**Stations** are declared in `DC_Entities.txt` (module `Base`) and `DC_LegacyEntities.txt` — script IDs are `Base.DC_DryCureStationBasic`, `Base.DC_DryCureStationAdvanced`, `Base.DC_DryCureStationProfessional` (placeable world objects, 2x1 footprint).
+
+> Note: script names differ from the Steam page's "Inferred IDs" — the module prefix is `DryCure.` (no ampersand, no spaces), not `DryAndCure.`. RCon's `give` typically accepts the bare name (the wrapper strips the prefix).
+
+## SIMON can spawn / give
 
 ```bash
-# Spawn stations near a player (must be a buildable tile!)
-pz-rcon.sh raw additem Base.DryCureStationBasic 1
-# Or whatever the correct command is for placing world objects — verify.
-
 # Give dried foods directly (foods are stackable items)
-pz-rcon.sh give <player> DryAndCure.DriedMeatStrips 5
+pz-rcon.sh give <player> DC_DriedFish 5
+pz-rcon.sh give <player> DC_PoultryStrip 5
+pz-rcon.sh give <player> DC_LargeDriedMeat 3
+pz-rcon.sh give <player> DC_DryMeatStrip 5
+pz-rcon.sh give <player> DC_DryMeatPiece 3
+
+# Spawn a station (placeable world object — requires buildable tile)
+pz-rcon.sh addobject DC_DryCureStationBasic <x> <y> <z>
 ```
 
-**CAUTION:** Building stations requires a clear 2x1 footprint + appropriate tile. SIMON should NOT auto-build these without player cooperation — wrong placement = orphaned object.
+**CAUTION:** Building stations requires a clear 2x1 footprint + appropriate tile. SIMON should NOT auto-build these without player cooperation — wrong placement = orphaned object. Use `addobject` only after confirming the player has cleared and leveled the spot.
 
 ## Compatibility
 - ✅ B42.20, no dependencies
