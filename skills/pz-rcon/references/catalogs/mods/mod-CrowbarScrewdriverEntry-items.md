@@ -1,27 +1,51 @@
-# CrowbarScrewdriverEntry - Crowbar / Screwdriver Entry
+# CrowbarScrewdriverEntry — Locked-Door Entry (B42.20 MP)
 
-Workshop ID: 3770164353
-Mod ID: CrowbarScrewdriverEntry
-Enabled on server: yes (B42 — verify MP compatibility in server console)
+- **Workshop ID:** 3770164353
+- **Mod ID:** `CrowbarScrewdriverEntry`
+- **Author:** (unknown from page)
+- **Build target:** B42 (42.19+), multiplayer-safe (server-authoritative)
+- **Status:** ✅ VERIFIED — uses VANILLA items only, no new scripts
 
-Alternative entry methods: use a Crowbar or Screwdriver (vanilla items) to force-open locked doors, windows, and other entry points. Replaces/augments the vanilla lockpicking mechanic with tool-based entry that consumes tool durability.
+## What it adds (behavior, not items)
 
-## Items
+Three vanilla entry tools get tiered door-opening logic. Success scales with stats, tools degrade on failure, and rolls produce noise + (sometimes) hand injuries.
 
-**No new item-prefix to `additem`.** This mod uses vanilla tools:
-- `Base.Crowbar`
-- `Base.Screwdriver`
+| Tool | Vanilla script | Loudness | Skill gates | Special |
+|------|----------------|----------|-------------|---------|
+| Crowbar | `Base.Crowbar` | LOUD | Strength, Fitness | Always-can-pry (except reinforced doors without Strength) |
+| Screwdriver | `Base.Screwdriver` | Quiet (almost silent) | Nimble (primary), Mechanics, Fitness | Burglar trait gets standing bonus |
+| Bolt cutters | `Base.BoltCutters` | LOUDEST | None (mechanical leverage) | Cuts reinforced security doors + wire fences |
 
-Tools degrade with use; SIMON can grant fresh tools via `additem` if survivors break theirs.
+### Sandbox knobs (admin-configurable)
+- Master switch + per-tool toggle (Crowbar / Screwdriver / Bolt cutters)
+- Success multipliers (prying, lockpicking, cutting)
+- Noise multipliers (per tool)
+- Action time multiplier (general + fence-specific)
+- Tool wear on failure (set 0 = tools never break)
+- Injury chance + severity (separate)
+- Reinforced doors (vault/security) require min Strength when enabled
+- Fence cutting + wire salvage toggle
 
-## Notes
-- ⚠️ This mod essentially replaces or bypasses vanilla lockpicking. If server sandbox has lockpicking disabled, this mod may still allow entry — confirm with admin.
-- SIMON's narrative framing: "Use the crowbar, the door's not getting friendlier" rather than "pick the lock"
+## SIMON can spawn these (vanilla)
+```bash
+pz-rcon.sh give <player> Base.Crowbar 1
+pz-rcon.sh give <player> Base.Screwdriver 1
+pz-rcon.sh give <player> Base.BoltCutters 1
+```
 
-## Use Cases (SIMON voice)
-- **Tool durability as narrative tension**: SIMON can broadcast when survivors burn through their last screwdriver — "If you break it, you're picking your way in with your *teeth* next time."
-- **"Quick entry" story beats**: SIMON can pre-stage a `removezombies` near a locked building, then urge survivors to "Get in there, NOW — crowbar the door, MOVE."
-- **Tool restock rewards**: `additem Base.Crowbar` or `Base.Screwdriver` after a successful base raid
+## Narrative use
 
-## Status
-- Steam workshop fetch was rate-limited — **item IDs above are inferred from mod title; confirm specific vanilla items used by inspecting `WorkshopItems/3770164353/contents/mods/CrowbarScrewdriverEntry/media/scripts/` on the server before relying on them.**
+Mod changes behavior, not loot tables. Story beats SIMON can leverage:
+- **Sneak jobs**: "Bolt cutters. Quietly now." Screwdriver path for burglar-types.
+- **Loud breach**: Crowbar always works, just bring spares — failure chews through condition.
+- **Reinforced sites** (gun stores, vaults): Vault/security doors need crowbar-with-Strength OR bolt cutters. Reinforced successes generate a working key, so the player never has to break in twice.
+- **Fence cutting**: Wire fences (chain-link, barbed-wire) are permanently removed; salvage drops at feet. Pipe/plank fences can't be cut.
+- **Server-authoritative**: Rolls resolve on the server. No client-side cheating.
+
+SIMON voice: *"That's a reinforced door. Bolt cutters, or you're crowbarring it 'til your arms give out. Either way, the neighbours WILL know you're coming."*
+
+## Caveats
+- Sandbox toggles per server. If the server admin disabled a tool, SIMON must respect it.
+- Mid-save safe. Can be added/removed without world reset.
+- No map edits, no item overrides — sits clean alongside other mods.
+- Translations: English + Ukrainian.

@@ -32,7 +32,7 @@ RCON syntax: `addvehicle "<script>" "<player>"`
 - **Convoy escort story beat**: "I've got eyes on a fifth-wheel, parked at the old trailer park off the highway. Engine's cold but the rig looks intact. If you want a roof that *moves*, now's the time."
 - **Emergency mobile base reward** after a major event (chopper down, military convoy overrun). SIMON drops one near a player and warns them to get outside before spawning.
 - **Long-term habitation arc**: survivors who hold down a base for weeks get the RV trailer as a "promotion to mobile command".
-- **RV interior = safe room**: SIMON can use `teleportplayer` to evac a downed survivor inside the trailer interior, then narrate as "patching them up in the back of the rig".
+- **RV interior = safe room** for narrative beats: SIMON narrates "patching them up in the back of the rig" if a player is downed nearby — the *player* runs to the trailer on foot, SIMON does NOT warp.
 
 ## Companion mods
 - Works alongside `[B42]Project RV Interior` for the *other* vehicles (PROJECTRVInterior42).

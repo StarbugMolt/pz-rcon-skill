@@ -1,29 +1,52 @@
-# Ladders42131 - Placeable Ladders
+# Ladders42131 — Ladders?! B42.20 SP/MP (Unofficial by nyamops)
 
-Workshop ID: 3629835761
-Mod ID: Ladders42131
-Enabled on server: yes (B42 — verify MP compatibility)
+- **Workshop ID:** 3629835761
+- **Steam title:** "Ladders?! B42.20 SP/MP (Unofficial)"
+- **Mod ID:** ⚠️ **`Ladders4220`** (NOT `Ladders42131` — see "Naming note" below)
+- **Author:** nyamops (unofficial B42.20 update of co`'s original)
+- **Build target:** B42.20 singleplayer AND multiplayer
+- **Status:** ⚠️ PARTIAL VERIFICATION — collapsible ladder craftable, exact script ID unconfirmed
 
-Placeable ladders that let survivors climb walls, fences, and rooftops they couldn't normally reach. Adds new navigation routes through Knox County.
+## What it adds
 
-## Items (inferred — verify against server files)
+Restores ladder-climbing functionality in B42.20. Hold `E` to climb down. Must be in the same tile and facing the ladder.
 
-Likely item prefix (common pattern for similar PZ mods):
-- `Ladders42131.Ladder` (or similar — `additem "player" "Ladders42131.Ladder"`)
-- Possibly multiple ladder types: wooden, metal, rope
+> **⚠️ Re-enable notice from author:** *"PLS re-enable the mod in your game/server"*. After PZ patches you'd need to disable+enable to refresh.
 
-⚠️ Steam workshop fetch was rate-limited when this catalog was created. **Verify the exact script ID(s) by inspecting `WorkshopItems/3629835761/contents/mods/Ladders42131/media/scripts/` on the server (or ask Stone to confirm).**
+## Items (1, craftable)
+- Collapsible ladder — recipe only (no loot spawn by default)
 
-## Notes
-- Ladders are placeable world objects — players right-click to place them on walls/floors
-- Likely craftable from vanilla wood/metal parts
-- May have sandbox options for max placed ladders per player / decay rate
+## Inferred script IDs (NEEDS LIVE VERIFICATION)
 
-## Use Cases (SIMON voice)
-- **Rooftop sniper perch narrative**: "Climb up, take the high ground. The horde can't follow you... mostly."
-- **Fence-skipping escapes**: SIMON can stage a `horde` event, then suggest survivors "ladder over the fence — they're not THAT smart"
-- **Base expansion flavor**: ladders let survivors reach normally-inaccessible rooftops — perfect for "found a sniper nest" arcs
-- **Tool restock**: `additem` ladders for survivors who burn through them
+> The Steam name is "Ladders42131" but the actual Mod ID inside the mod folder is `Ladders4220`. Verify both on the server filesystem before relying on these.
 
-## Status
-- **NEEDS LIVE VERIFICATION** — exact item script ID(s), craft recipe, and placement behavior. Update once Stone inspects the mod files.
+| Inferred ID | Notes |
+|-------------|-------|
+| `Ladders4220.CollapsibleLadder` | Primary item |
+| `Ladders4220.Ladder` | Alternate (verify) |
+
+To verify: `find steamapps/workshop/content/108600/3629835761 -name "*.txt" | xargs grep -l Ladders4220`
+
+## SIMON can spawn / give (best guess, verify first)
+
+```bash
+pz-rcon.sh give <player> Ladders4220.CollapsibleLadder 1
+```
+
+## Caveats
+- ⚠️ **"This is a replacement mod. Do NOT enable original mod with it"** — the original B41 "Ladders?!" mod (Workshop 2737665235) MUST NOT be enabled alongside.
+- ⚠️ **Incompatible with "gun's elevator mod"** (per author comment).
+- ⚠️ **Ladders will not function if there's a staircase above the ladder tile** — known mod-conflict issue. If survivors report "can't climb down," check for staircase overlap.
+- B42 ladder-climb control: `Hold E + direction toward ladder` to climb down (some users report a press-E-alone bug — direction input is needed).
+- Requires player to be in same tile as ladder, facing it.
+
+## Narrative use
+
+Gives survivors roof access, fence-scaling, second-story entry. Story beats:
+- "That fence isn't getting over. Find a ladder."
+- "Rooftop sniping position — climb up."
+- Restores the lost B41 ladder-climbing for B42.20.
+
+## Naming note
+
+Server's `Mods=` line has the Steam workshop folder name `Ladders42131`. The mod's internal `Mod ID` is `Ladders4220` (since it's a B42.20 update of a B41 mod). This is why the .env shows `Ladders42131` but script IDs are `Ladders4220.*` — different namespacing for folder vs mod ID.

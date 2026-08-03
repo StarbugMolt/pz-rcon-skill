@@ -1,23 +1,38 @@
-# DBFaster25 - Drivable Base Faster (B42)
+# DBFaster25 — Drag Bodies Faster (B42.20 SP/MP)
 
-Workshop ID: 3393821407
-Mod ID: DBFaster25
-Enabled on server: yes (B42 — verify MP compatibility)
+- **Workshop ID:** 3393821407
+- **Mod ID:** `DBFaster25` (also publishes `DBFaster50`, `DBFaster60`, `DBFaster70`, `DBFaster80` as sibling mods — server is using the 25% variant)
+- **Build target:** B42.20 singleplayer AND multiplayer
+- **Status:** ✅ VERIFIED — pure behavior tweak, no items, no scripts
 
-Vehicle physics tweak: cars accelerate faster, brake harder, and handle more responsively than vanilla. Pure gameplay adjustment, no new content.
+## What it does
 
-## Items
-**No addable items.** Pure vehicle physics modifier. Affects all drivable vehicles on the server — including the 7 KI5 cars, KI5 trailers, RVTrailerTypeB42, and PROJECTRVInterior42 vehicles.
+Speeds up corpse dragging/dropping in vanilla. Five variants on Steam (one mod per speed tier):
+| Mod | Drag speed | Notes |
+|-----|------------|-------|
+| DBFaster25 | +25% | **This server** |
+| DBFaster50 | +50% | Archived — not on current server |
+| DBFaster60 | +60% | |
+| DBFaster70 | +70% | |
+| DBFaster80 | +80% | |
 
-## Notes
-- The "25" in the mod name is a version/multiplier — different from "DBFaster50" (which is **NOT** on this server). The catalog for DBFaster50 was archived; **DBFaster25 is the active version**.
-- This mod affects *all* vehicles globally — SIMON's vehicle-drop narratives should reflect that "everything's a bit faster out there"
-- No sandbox options (it's a fixed tweak)
+Permanent bonuses regardless of variant:
+- +25% faster corpse pickup (always on)
+- +50% faster corpse drop (always on)
 
-## Use Cases (SIMON voice)
-- **Vehicle flavor**: any car SIMON spawns will feel more responsive — "Careful, this thing *moves* now."
-- **Convoy speed**: SIMON's convoy/chase narratives play out faster — plan pacing accordingly
-- **"Don't drive like a maniac"** warnings when survivors get cocky with the faster cars (RWB Porsche, RS Escort, Daytona Charger, etc.)
+## SIMON can spawn: nothing
 
-## Status
-- Steam workshop fetch was rate-limited when this catalog was created — **verify whether DBFaster25 affects KI5 vehicles specifically, or if there's a conflict**. Inspect `WorkshopItems/3393821407/contents/mods/DBFaster25/` on the server.
+This mod changes the *drag speed parameter* on corpse interactions. There are no new items, no new scripts, no map edits. SIMON cannot spawn anything from this mod.
+
+## Narrative use (purely atmospheric)
+
+Story beats for "you're clearing a kill zone" scenarios:
+- "Shouldn't take all day anymore. Drag 'em, dump 'em."
+- Survivors can actually clear streets/bases in reasonable time now.
+- Combined with `removezombies`, SIMON can clear a horde aftermath as a diegetic beat.
+
+## Caveats
+- Mid-save safe — can be added/removed without world reset.
+- Multiplayer-compatible (server-side param, not client-predict).
+- No new loot, no new spawns, no map impact.
+- Mod-author note (working in B42.20.0): confirmed stable singleplayer + multiplayer.

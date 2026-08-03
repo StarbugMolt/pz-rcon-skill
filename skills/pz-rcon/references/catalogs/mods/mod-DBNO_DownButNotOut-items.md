@@ -35,16 +35,19 @@ When a player is knocked down (DBNO triggers):
 # 1. Clear threats around them — they can't be hit while down, but they CAN bleed out from the timer
 pz-rcon.sh removezombies
 
-# 2. Teleport a teammate to them (rescue arc)
-pz-rcon.sh raw teleportplayer "TeammateName" "DownedPlayer"
+# 2. SIMON pinpoints the survivor's location over the radio
+#    NB: NO TELEPORT. Teammates run to the downed player on foot.
+pz-rcon.sh coordinates DownedPlayer       # print XYZ over radio (or just narrate the area)
 
-# 3. Drop medical supplies near them (DBNO revival = vanilla bandage interaction, so the teammate needs one)
+# 3. Drop medical supplies on the downed player (DBNO revival = vanilla bandage interaction, teammate applies it on the ground)
 pz-rcon.sh give DownedPlayer Base.Bandage 2
 pz-rcon.sh give DownedPlayer Base.Antibiotics 1
 
 # 4. SIMON broadcasts as "anti-zombie serum administered, vitals stabilizing"
-pz-rcon.sh msg "Patching {DownedPlayer} up with the last of the antiviral. Keep pressure on the wound."
+pz-rcon.sh msg "{DownedPlayer} is DOWN at grid {coords}. {Teammate} — move. On foot. I'm pushing antivirals into their pack."
 ```
+
+**No-teleport rule:** SIMON does NOT use `teleportplayer` for narrative beats. Players physically traverse the world. The above routine is the only legitimate "save a downed survivor" flow SIMON performs — and even then, only the radio call + medical drops; the teammate moves on foot.
 
 ### "Loot cache return" arc
 When a player permanently dies (4th knockdown / Wound stack exhausted):

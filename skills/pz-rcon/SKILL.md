@@ -184,8 +184,7 @@ When generating broadcasts, SIMON rolls for mood:
    - `noclip "player" -true` — 30 sec wall-walk ("Phase mode!")
    - `removezombies` — Clear nearby zombies for safe extraction
 
-   **TELEPORTATION:**
-   - `teleportplayer "player1" "player2"` — Extraction missions!
+   **NOTE:** SIMON does **not** use `teleportplayer` for narrative beats (see "No-teleport policy" below). That command is admin-only — stuck-character recovery, inventory dupes, debug.
 5. Messages are split into 150-character chunks if needed
 6. ALL transmissions end with "Simon, out."
 
@@ -269,21 +268,24 @@ DBNO_DownButNotOut + ResearchLabInternProfession (Zombie Virus Vaccine) give SIM
 # 1. Clear threats around the downed player (DBNO makes them impervious to damage, but they bleed out)
 pz-rcon.sh raw removezombies
 
-# 2. Teleport a teammate to them for the revive (DBNO requires a teammate to pick them up)
-pz-rcon.sh raw teleportplayer "TeammateName" "DownedPlayer"
+# 2. SIMON pinpoints the survivor's location over the radio (so the teammate can run to them)
+#    NB: NO TELEPORT. Players move on foot. SIMON does not warp survivors.
+pz-rcon.sh coordinates DownedPlayer       # print XYZ over radio if not already known
 
-# 3. Drop revival supplies (DBNO revival = vanilla bandage/antibiotics interaction)
+# 3. Drop revival supplies on the downed player (vanilla Bandage/Antibiotics interaction revives them)
 pz-rcon.sh give DownedPlayer Base.Bandage 2
 pz-rcon.sh give DownedPlayer Base.Antibiotics 1
 pz-rcon.sh give DownedPlayer Base.Painkillers 1
 
-# 4. SIMON broadcasts the cure
-pz-rcon.sh msg "Patching {DownedPlayer} up with the last antiviral. {player}, keep pressure on. We've got maybe a minute."
+# 4. SIMON broadcasts
+pz-rcon.sh msg "{DownedPlayer} is DOWN. {Teammate} — get to them, on foot. I'm pushing the last antivirals into their pack. Move."
 ```
 
-SIMON voice: *"Christ, they're DOWN. I— okay. I'm pushing meds. Don't you DARE die on this frequency. SIMON, OUT."*
+SIMON voice: *"Christ, they're DOWN at grid {coords}. Someone GET there. I'm pushing meds through their pack. On your feet, soldier — the dead don't get a second chance. SIMON, OUT."*
 
-**Caveat:** the *real* cure (if any) is the player's ResearchLabInternProfession research arc — multi-step, requires military research sites / St. Peregrin Hospital / Louisville university lab. SIMON should NOT shortcut that. Anti-zombie serum is a *bandage*, not a *vaccine*. See catalog: `mod-ResearchLabInternProfession-items.md`.
+**No-teleport policy:** SIMON does not use `teleportplayer` for narrative beats. Players physically traverse the world. The only legitimate `teleportplayer` calls are admin-lifecycle (stuck-character recovery, inventory dupes, debug). If a downed player is unreachable because of a map glitch, that's an admin ticket — not a SIMON decision.
+
+**Caveat:** the *real* cure (if any) is the player's ResearchLabInternProfession research arc — multi-step, requires military research sites / St. Peregrin Hospital / Louisville university lab. SIMON does NOT shortcut that. Anti-zombie serum is a *bandage*, not a *vaccine*. See catalog: `mod-ResearchLabInternProfession-items.md`.
 
 For the dossier-driven cure arc (Medical/Military tiers of Dead Man's Dossier drop *Knox Antidote* / *X-Virus* items when those mods are active), see `mod-DeadMansDossier-items.md`.
 
