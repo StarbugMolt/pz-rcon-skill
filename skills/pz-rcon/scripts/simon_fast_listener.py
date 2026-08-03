@@ -2,7 +2,12 @@
 """
 SIMON Fast Listener — Discord-based player connection detector.
 Runs as a background service, detects "[PlayerName] connected to server"
-messages in #pz-molt and fires RCON greetings within seconds.
+messages in #pz-molt and fires Discord greetings within seconds.
+
+Architecture: PZ server has DiscordEnable=true and DiscordChatChannel=pz-molt,
+so messages sent to #pz-molt are automatically mirrored to in-game chat via
+PZ's Discord chat relay. RCON `servermsg` is no longer needed for broadcasts
+and is reserved for game-state mutations only (give, addvehicle, etc.).
 
 Usage:
     python3 simon_fast_listener.py
@@ -10,7 +15,6 @@ Usage:
 Requires:
     - discord.py (pip install discord.py)
     - Bot token from OpenClaw config (read from openclaw.json)
-    - PZ RCON credentials (from ~/.env)
 """
 
 import asyncio
@@ -126,29 +130,22 @@ def update_greet_dedupe(player_name):
     now = int(time.time())
     GREET_DEDUPE_FILE.write_text(f"{player_name}|{now}")
 
-# Fire RCON greeting
-def fire_greeting(player_name):
+# Fire Discord greeting (Discord-first chat architecture)
+# PZ server has DiscordEnable=true and DiscordChatChannel=pz-molt,
+# so #pz-molt messages are mirrored to in-game chat automatically.
+# RCON servermsg is no longer needed for broadcasts and is reserved
+# for game-state mutations only (give, addvehicle, etc.).
+async def fire_greeting(channel, player_name):
     greeting = generate_greeting(player_name)
     print(f"Greeting {player_name}: {greeting}")
     
     try:
-        result = subprocess.run(
-            [str(RCON_SCRIPT), "msg", greeting],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            cwd=str(SKILL_DIR)
-        )
-        
-        if result.returncode == 0:
-            update_greet_dedupe(player_name)
-            print(f"Greeting sent successfully")
-            return True
-        else:
-            print(f"ERROR: RCON failed: {result.stderr}", file=sys.stderr)
-            return False
+        await channel.send(greeting)
+        update_greet_dedupe(player_name)
+        print(f"Greeting sent successfully (Discord → PZ chat relay → in-game)")
+        return True
     except Exception as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        print(f"ERROR: Discord send failed: {e}", file=sys.stderr)
         return False
 
 # Parse connection message
@@ -216,9 +213,12 @@ async def main():
                 # before talking to the player).
                 print(f"Waiting 10s before greeting {player_name}...")
                 await asyncio.sleep(10)
-                # Fire greeting in a thread to not block the event loop
-                loop = asyncio.get_event_loop()
-                await loop.run_in_executor(None, fire_greeting, player_name)
+                # Send via Discord API — PZ chat relay mirrors to in-game.
+                channel = client.get_channel(CHANNEL_ID)
+                if channel is None:
+                    print(f"ERROR: Could not resolve channel {CHANNEL_ID}", file=sys.stderr)
+                else:
+                    await fire_greeting(channel, player_name)
             else:
                 print(f"Skipping {player_name} (dedupe)")
             

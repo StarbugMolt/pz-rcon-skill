@@ -1,4 +1,43 @@
+# Secrets — NEVER commit
 .env
+.env.*
+!.env.example
+*.env
+
+# Runtime state — operational, not source
+state/
+!state/*.example
+
+# Runtime config — environment-specific overrides (keep .example as template)
 config.json
-state/*.local.json
+!config.json.example
+
+# Logs — operational
+logs/
+*.log
+
+# Archived / dead reference docs
+references/archive/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Server snapshots — may contain internal IPs / server config
+snapshots/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Local memory / diaries
 memory/
+*.md.local

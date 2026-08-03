@@ -73,7 +73,7 @@ import sys, json
 now = int(sys.argv[1])
 players = sys.argv[2:]
 
-registry_path = "/home/starbugmolt/.openclaw/workspace/skills/pz-rcon/state/player-registry.json"
+registry_path = "/home/starbugmolt/.openclaw/workspace-simon/skills/pz-rcon/state/player-registry.json"
 
 try:
   with open(registry_path, "r") as f:
