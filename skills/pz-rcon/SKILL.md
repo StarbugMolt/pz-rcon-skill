@@ -234,6 +234,104 @@ Use these catalogs as spawn/give lookup source:
 Template for mod files:
 - `references/catalogs/mods/mod-template-items.md`
 
+## Mod-Specific Commands (B42 server, 2026-08-03)
+
+The 29 enabled mods (`PZ_ENABLED_MODS` in `.env`) extend what SIMON can spawn, grant, and narrate. Use these patterns when a player request or ambient story calls for them.
+
+### RV / Trailer spawn pattern
+
+For "I want an RV" or convoy-drop stories, SIMON can spawn modded trailers at the player's location.
+
+```bash
+# Fifth-wheel RV trailer with walk-in interior (RVTrailerTypeB42)
+pz-rcon.sh vehicle Base.TrailerRV_B "<player>"
+# (pz-rcon.sh vehicle wraps "addvehicle <script> <user>")
+
+# KI5 trailers pack (7 variants)
+pz-rcon.sh vehicle TrailerKI5utilityLarge  "<player>"
+pz-rcon.sh vehicle TrailerKI5utilityMedium "<player>"
+pz-rcon.sh vehicle TrailerKI5utilitySmall  "<player>"
+pz-rcon.sh vehicle TrailerKI5cargoLarge    "<player>"
+pz-rcon.sh vehicle TrailerKI5cargoMedium   "<player>"
+pz-rcon.sh vehicle TrailerKI5cargoSmall    "<player>"
+pz-rcon.sh vehicle TrailerKI5livestock     "<player>"
+```
+
+⚠️ `addvehicle` spawns at the player's **current tile** by default. For the RV trailer (large), **warn the player to be outside and clear of obstacles before spawning** — otherwise they may get stuck inside or the trailer may clip through structures. SIMON voice: *"HEY! {player} — get OUTSIDE now. You've got thirty seconds. There's a fifth-wheel coming down and I am NOT scraping you off the pavement."*
+
+See catalogs: `mod-RVTrailerTypeB42-items.md`, `mod-KI5trailers-items.md`.
+
+### "Save a downed survivor" / anti-zombie serum narrative
+
+DBNO_DownButNotOut + ResearchLabInternProfession (Zombie Virus Vaccine) give SIMON a diegetic framework to play "anti-zombie serum" stories. PZ has no literal cure item, but this routine is the in-fiction pattern:
+
+```bash
+# 1. Clear threats around the downed player (DBNO makes them impervious to damage, but they bleed out)
+pz-rcon.sh raw removezombies
+
+# 2. Teleport a teammate to them for the revive (DBNO requires a teammate to pick them up)
+pz-rcon.sh raw teleportplayer "TeammateName" "DownedPlayer"
+
+# 3. Drop revival supplies (DBNO revival = vanilla bandage/antibiotics interaction)
+pz-rcon.sh give DownedPlayer Base.Bandage 2
+pz-rcon.sh give DownedPlayer Base.Antibiotics 1
+pz-rcon.sh give DownedPlayer Base.Painkillers 1
+
+# 4. SIMON broadcasts the cure
+pz-rcon.sh msg "Patching {DownedPlayer} up with the last antiviral. {player}, keep pressure on. We've got maybe a minute."
+```
+
+SIMON voice: *"Christ, they're DOWN. I— okay. I'm pushing meds. Don't you DARE die on this frequency. SIMON, OUT."*
+
+**Caveat:** the *real* cure (if any) is the player's ResearchLabInternProfession research arc — multi-step, requires military research sites / St. Peregrin Hospital / Louisville university lab. SIMON should NOT shortcut that. Anti-zombie serum is a *bandage*, not a *vaccine*. See catalog: `mod-ResearchLabInternProfession-items.md`.
+
+For the dossier-driven cure arc (Medical/Military tiers of Dead Man's Dossier drop *Knox Antidote* / *X-Virus* items when those mods are active), see `mod-DeadMansDossier-items.md`.
+
+### DeLorean BTTF flavor drop
+
+Stone loves a callback. The 81deloreanDMC12 mod includes a Back to the Future time machine variant as an optional spawn.
+
+```bash
+pz-rcon.sh vehicle 81deloreanDMC12BTTF "<player>"
+```
+
+SIMON voice: *"1.21 gigawatts. WHERE am I supposed to find 1.21 gigawatts?! ...just drive it before I think about what I just did. SIMON, OUT."*
+
+### Mod vehicle quick-reference
+
+| Mod | Vehicle scripts |
+|-----|-----------------|
+| RVTrailerTypeB42 | `Base.TrailerRV_B` |
+| KI5trailers | `TrailerKI5utility{Large,Medium,Small}`, `TrailerKI5cargo{Large,Medium,Small}`, `TrailerKI5livestock` |
+| 70fordEscort | `70fordEscort{Coupe,RS,Sedan,Wagon}` |
+| 95impreza | `95impreza`, `95imprezalhd` |
+| 96lancerEVO | `96lancerEVO`, `96lancerEVOlhd` |
+| 70roadRunner | `70roadRunner` |
+| 69charger | `69charger{RT,500,Daytona,Demon}` |
+| 82porsche911 | `82porsche911{turbo,rwb,sc,targa}` |
+| 81deloreanDMC12 | `81deloreanDMC12`, `81deloreanDMC12BTTF` |
+
+PROJECTRVInterior42 adds interior meshes to **vanilla** vehicles (`Base.PickUpVan`, `Base.Van`, `Base.VanAmbulance`, etc.) — no new script IDs, but those vanilla scripts now have walkable interiors. See `mod-PROJECTRVInterior42-items.md`.
+
+### Framework / dependency mods (no spawnable content)
+
+These mods do nothing on their own — they exist to power other mods. If SIMON's vehicle spawns fail or items don't appear in loot tables, check the dependency chain first:
+
+- `damnlib` — required by KI5trailers, KI5campers, manageContainers
+- `StarlitLibrary` — required by LEGION18 (Legion Weaponry)
+- `MoodleFramework` — required by mods that add custom moodles (e.g., DBNO wounds)
+
+### Caveats / mod quirks
+
+- **KI5 trailers / cars / campers / containers** all need `damnlib` enabled — auto-satisfied on this server.
+- **LEGION18 weapons** won't appear in loot if `StarlitLibrary` is missing.
+- **DBNO** is multiplayer-only. Singleplayer doesn't support it.
+- **ProjectArcade** cannot be removed midgame without first removing all placed machines — causes invisible furniture + WorldDictionary errors.
+- **BreakBigRocks** does NOT replace vanilla rocks; mid-save safe.
+- **ResearchLabInternProfession** is NOT mid-save removable (workstation world changes are permanent).
+- **HereGoesTheSun** loads best LAST among weather mods for cleanest visual layering.
+- **CorvusNVG / Ladders42131** item script IDs are inferred (Steam rate-limited when cataloged) — verify against `WorkshopItems/<id>/contents/mods/<ModID>/media/scripts/` before relying on them for `additem`. See catalog "Status" notes.
+
 ## Operational notes
 
 - RCON port is usually game port + 1.
