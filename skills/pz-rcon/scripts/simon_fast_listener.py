@@ -40,6 +40,10 @@ PLAYER_DELTA_FILE = STATE_DIR / "player-delta.json"
 DISCORD_MESSAGE_STATE_FILE = STATE_DIR / "discord-message-state.json"
 RCON_SCRIPT = Path(__file__).parent / "pz-rcon.sh"
 
+# PZ Discord chat relay bot ID — in-game chat is mirrored to #pz-molt by this bot.
+# We must let it through the bot filter so chat-response path can process it.
+PZ_CHAT_RELAY_BOT_ID = 1470006704866594826
+
 # Greeting templates by tier
 GREETINGS = {
     "new": [
@@ -466,10 +470,10 @@ async def main():
         if message.author == client.user:
             return
         
-        # Skip other bots (webhooks, etc.) — only respond to humans and PZ
-        # server's Discord chat relay (which arrives as a bot author, but we
-        # handle that explicitly via the connection-event path).
-        if message.author.bot and message.author != client.user:
+        # Skip other bots (webhooks, etc.) — but allow PZ chat relay through
+        # so in-game chat messages and connection events reach the handler.
+        # The PZ server's Discord chat relay posts as bot ID PZ_CHAT_RELAY_BOT_ID.
+        if message.author.bot and message.author.id != PZ_CHAT_RELAY_BOT_ID:
             return
         
         # Skip system messages (joins, pin notifications, etc.)
