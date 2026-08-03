@@ -233,11 +233,11 @@ Use these catalogs as spawn/give lookup source:
 Template for mod files:
 - `references/catalogs/mods/mod-template-items.md`
 
-## Mod-Specific Commands (B42 server, 2026-08-03)
+## Mod-Specific Commands (B42 server, 2026-08-03 — 36 enabled mods)
 
-The 29 enabled mods (`PZ_ENABLED_MODS` in `.env`) extend what SIMON can spawn, grant, and narrate. Use these patterns when a player request or ambient story calls for them.
+The 36 enabled mods (`PZ_ENABLED_MODS` in `.env`) extend what SIMON can spawn, grant, and narrate. Use these patterns when a player request or ambient story calls for them.
 
-### RV / Trailer spawn pattern
+### RV / Trailer / Coach spawn pattern
 
 For "I want an RV" or convoy-drop stories, SIMON can spawn modded trailers at the player's location.
 
@@ -254,11 +254,26 @@ pz-rcon.sh vehicle TrailerKI5cargoLarge    "<player>"
 pz-rcon.sh vehicle TrailerKI5cargoMedium   "<player>"
 pz-rcon.sh vehicle TrailerKI5cargoSmall    "<player>"
 pz-rcon.sh vehicle TrailerKI5livestock     "<player>"
+
+# Dash Roamer cabover RV (DashRoamerB42, B42.20 standalone port)
+# Uses preserved Base.DashRoamer identity — compatible with Arcadia RV Interiors
+pz-rcon.sh vehicle Base.DashRoamer "<player>"
+
+# '87 Ford B700/F700 trucks (87fordB700) — 6 variants of bus / heavy truck
+# Best for convoy-escort and high-passenger rewards
+pz-rcon.sh vehicle 87fordB700school    "<player>"   # School bus (14 pax)
+pz-rcon.sh vehicle 87fordB700military  "<player>"   # Military bus (14 pax)
+pz-rcon.sh vehicle 87fordB700prison    "<player>"   # Prison bus (14 pax)
+pz-rcon.sh vehicle 87fordF700swat      "<player>"   # SWAT van (8 pax, armoured)
+pz-rcon.sh vehicle 87fordF700bank      "<player>"   # Armored bank truck (2 pax, vault door)
+pz-rcon.sh vehicle 87fordF700box       "<player>"   # Box truck (2 pax, cargo)
 ```
 
-⚠️ `addvehicle` spawns at the player's **current tile** by default. For the RV trailer (large), **warn the player to be outside and clear of obstacles before spawning** — otherwise they may get stuck inside or the trailer may clip through structures. SIMON voice: *"HEY! {player} — get OUTSIDE now. You've got thirty seconds. There's a fifth-wheel coming down and I am NOT scraping you off the pavement."*
+⚠️ `addvehicle` spawns at the player's **current tile** by default. For the RV trailer, Dash Roamer, and buses/trucks (all large), **warn the player to be outside and clear of obstacles before spawning** — otherwise they may get stuck inside or the vehicle may clip through structures. SIMON voice: *"HEY! {player} — get OUTSIDE now. You've got thirty seconds. There's a fifth-wheel coming down and I am NOT scraping you off the pavement."*
 
-See catalogs: `mod-RVTrailerTypeB42-items.md`, `mod-KI5trailers-items.md`.
+For 87fordB700 convoys, prefer the **SWAT van or Bank Truck** for the SIMON "convoy escort" reward at end of major story arcs — these mods together enable an entire military/law-enforcement vehicle collection on this server.
+
+See catalogs: `mod-RVTrailerTypeB42-items.md`, `mod-KI5trailers-items.md`, `mod-DashRoamerB42-items.md`, `mod-87fordB700-items.md`.
 
 ### "Save a downed survivor" / anti-zombie serum narrative
 
@@ -289,6 +304,51 @@ SIMON voice: *"Christ, they're DOWN at grid {coords}. Someone GET there. I'm pus
 
 For the dossier-driven cure arc (Medical/Military tiers of Dead Man's Dossier drop *Knox Antidote* / *X-Virus* items when those mods are active), see `mod-DeadMansDossier-items.md`.
 
+### Skill preservation narrative — "Plan for the next life"
+
+SkillJournal (craftable journal) + BCR (kill-count rewards) create a layered death-resilience system. SIMON can prompt skill preservation *before* risky missions:
+
+```bash
+# SIMON broadcast encouraging a player to write to their journal before a planned risky run
+pz-rcon.sh msg "{player} — before you kick that hornet's nest, take five minutes and WRITE IT DOWN. The notebook holds. The body doesn't."
+```
+
+SIMON voice: *"Before you go in — write it down. Tape it to your belt if you have to. We're running out of 'next lives' to spend on this place."*
+
+**Combined with DBNO_DownButNotOut**: DBNO leaves a Death Cache (the player's loot). A SkillJournal in the inventory has their skills. SIMON can frame the journal as the player's *real* legacy vs. the gear.
+
+See catalogs: `mod-SkillJournal-items.md`, `mod-BCR-items.md`.
+
+### Body count rewards — milestone broadcast beat
+
+BCR (Body Count Rewards) gives trait rewards at configurable kill milestones. SIMON can narrate milestone beats during major events:
+
+```bash
+# After a major horde/chopper event, narrate the milestone
+pz-rcon.sh msg "{player} — kill count's climbing. Heard chatter on the radio that someone in your group's about to crack the next threshold. Stay sharp."
+
+# If a player reports "I should have unlocked something", check sandbox:
+#   → 'BodyCountRewards - Sandbox' > 'Grant Missed Opportunities' (mid-save catch-up)
+# OR simulate a kill event with a small chopper/helicopter drop
+```
+
+SIMON voice: *"Five thousand dead. They don't get to take that away from you now."*
+
+The `BCR-IAmNotYourMom` addon (enabled on server) opens the trait pool to include Brave / Desensitized / Short Sighted / Hard of Hearing / Insomniac / Deaf — useful for narrative beats about player transformation.
+
+### Preservation trio — "Lay down stores"
+
+Dry&Cure + SKITTLE_LongTermPreservation4220 + SapphCooking_B42 form the late-game survival trio. SIMON can frame seasonal prep arcs:
+
+```bash
+# End-of-summer broadcast — survivors should be stocking dried/canned goods
+pz-rcon.sh msg "Fishing's good right now. If you've got the Carpentry, build yourself a drying station before the season turns. Three days and you've got jerky that'll outlast a winter."
+```
+
+Dry&Cure adds 3 craftable drying stations (Basic / Advanced / Professional) + 5 dried-food output items. SKITTLE adds salt-cure/dry/jar/pemmican. SapphCooking adds pressure-canning. Together: a complete food-security arc.
+
+See catalogs: `mod-Dry&Cure-items.md`, `mod-SKITTLE_LongTermPreservation4220-items.md`, `mod-SapphCooking_B42-items.md`.
+
 ### DeLorean BTTF flavor drop
 
 Stone loves a callback. The 81deloreanDMC12 mod includes a Back to the Future time machine variant as an optional spawn.
@@ -305,6 +365,8 @@ SIMON voice: *"1.21 gigawatts. WHERE am I supposed to find 1.21 gigawatts?! ...j
 |-----|-----------------|
 | RVTrailerTypeB42 | `Base.TrailerRV_B` |
 | KI5trailers | `TrailerKI5utility{Large,Medium,Small}`, `TrailerKI5cargo{Large,Medium,Small}`, `TrailerKI5livestock` |
+| DashRoamerB42 | `Base.DashRoamer` (cabover RV; Arcadia-interiors compatible) |
+| 87fordB700 | `87fordB700{school,military,prison}`, `87fordF700{swat,bank,box}` |
 | 70fordEscort | `70fordEscort{Coupe,RS,Sedan,Wagon}` |
 | 95impreza | `95impreza`, `95imprezalhd` |
 | 96lancerEVO | `96lancerEVO`, `96lancerEVOlhd` |
@@ -319,9 +381,26 @@ PROJECTRVInterior42 adds interior meshes to **vanilla** vehicles (`Base.PickUpVa
 
 These mods do nothing on their own — they exist to power other mods. If SIMON's vehicle spawns fail or items don't appear in loot tables, check the dependency chain first:
 
-- `damnlib` — required by KI5trailers, KI5campers, manageContainers
+- `damnlib` — required by KI5trailers, KI5campers, manageContainers, KI5 camp ecosystem (including 87fordB700 and DashRoamerB42)
 - `StarlitLibrary` — required by LEGION18 (Legion Weaponry)
 - `MoodleFramework` — required by mods that add custom moodles (e.g., DBNO wounds)
+- `BCR` — required by `BCR-IAmNotYourMom` addon (loaded automatically when both are enabled)
+
+### Pure tweak mods (no spawnable content)
+
+These change vanilla behavior but add no items. SIMON cannot `additem` anything from these:
+
+- `DBFaster25` — drag-corpse speed bonus
+- `InjuredZombiesStumble` — injured zombies may stumble
+- `ZeroWeightKeys_B42` — keys weigh 0 (configurable)
+- `CrowbarScrewdriverEntry` — sandbox behavior on lock-picking (vanilla tools)
+
+### Late-add / BETA mods (handle with extra care)
+
+- `DashRoamerB42` is currently BETA per the author — vehicle stats / parts may change.
+- `ZeroWeightKeys_B42` is MP-untested by author. Bug reports in thread if keys misbehave in MP.
+- `SkillJournal` requires a pen/pencil to record — auto-fail if the player has neither.
+- `Dry&Cure` Basic + Advanced stations lose progress in rain/humidity — Professional is weatherproof.
 
 ### Caveats / mod quirks
 
