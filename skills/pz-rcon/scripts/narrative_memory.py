@@ -56,7 +56,7 @@ class NarrativeMemory:
         files = sorted(glob.glob(self._session_path("*")), key=os.path.getmtime, reverse=True)
         for f in files:
             with open(f) as fh:
-                data = json.load(f)
+                data = json.load(fh)
             if not data.get("archived"):
                 return os.path.basename(f).replace(".json", "")
         return None

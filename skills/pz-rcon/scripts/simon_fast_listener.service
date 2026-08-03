@@ -1,0 +1,15 @@
+[Unit]
+Description=SIMON Fast Listener - Discord connection detector
+After=network.target openclaw-gateway.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/starbugmolt/.openclaw/workspace-simon/skills/pz-rcon
+ExecStart=/usr/bin/python3 /home/starbugmolt/.openclaw/workspace-simon/skills/pz-rcon/scripts/simon_fast_listener.py
+Restart=always
+RestartSec=5
+Environment=HOME=/home/starbugmolt
+Environment=PZ_DISCORD_CHANNEL_ID=***REMOVED***
+
+[Install]
+WantedBy=default.target
