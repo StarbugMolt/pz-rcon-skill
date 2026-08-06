@@ -9,7 +9,8 @@ ExecStart=/usr/bin/python3 /home/starbugmolt/.openclaw/workspace-simon/skills/pz
 Restart=always
 RestartSec=5
 Environment=HOME=/home/starbugmolt
-Environment=PZ_DISCORD_CHANNEL_ID=***REMOVED***
+# Set PZ_DISCORD_CHANNEL_ID to YOUR pz-molt Discord channel id (do not commit a real id here)
+Environment=PZ_DISCORD_CHANNEL_ID=YOUR_PZ_MOLT_CHANNEL_ID_HERE
 
 [Install]
 WantedBy=default.target

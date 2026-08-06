@@ -40,10 +40,6 @@ PLAYER_DELTA_FILE = STATE_DIR / "player-delta.json"
 DISCORD_MESSAGE_STATE_FILE = STATE_DIR / "discord-message-state.json"
 RCON_SCRIPT = Path(__file__).parent / "pz-rcon.sh"
 
-# PZ Discord chat relay bot ID — in-game chat is mirrored to #pz-molt by this bot.
-# We must let it through the bot filter so chat-response path can process it.
-PZ_CHAT_RELAY_BOT_ID = 1470006704866594826
-
 # Greeting templates by tier
 GREETINGS = {
     "new": [
@@ -112,12 +108,9 @@ CHAT_RESPONSES = {
         "All quiet on the western fence, {player}. Too quiet. Simon, out.",
     ],
     "help": [
-        "Thirsty, {player}? Toilets, bathtubs, kitchen sinks — any container's got water if you look. Simon, out.",
-        "Hungry, {player}? Check fridges, freezers, garbage bags. Canned goods last longest. Simon, out.",
-        "Hurt, {player}? Bathroom cabinets, first aid kits, sometimes car trunks. Bandages and painkillers. Simon, out.",
-        "Bleeding out, {player}? Sheets, rags, anything clean. Stop the bleed first, then worry about infection. Simon, out.",
-        "Need water, {player}? Rain barrels, rivers, lakes — boil it first if you can. Simon, out.",
-        "Help's coming, {player} — but it's coming from inside you. The bunker's got radio, not rescue. Simon, out.",
+        "{player}, only help the dead don't ask for. Bandage up, hunker down.\nSimon, out.",
+        "Help, {player}? You're it. The bunker's got canned beans and bad news.\nSimon, out.",
+        "Help's a luxury, {player}. Survival's the only currency. Simon, out.",
     ],
     "question": [
         "Question logged, {player}. The dead don't have answers, but the station\nmight. Simon, out.",
@@ -286,112 +279,9 @@ def parse_connection_message(content):
     
     return None
 
-# Parse player name from PZ Discord chat relay content.
-# Format: "PlayerName: message text" — e.g. "StarbugStone: simon you there?"
-# Returns (player_name, message_text) or (None, original_content) if no prefix.
-def parse_pz_chat_player(content):
-    """
-    Extract player name from PZ chat relay content.
-    
-    The PZ Discord chat relay posts as bot 'servertest#9150' but prepends the
-    actual player's name to the message: 'StarbugStone: hey simon'. We need
-    the real player name (not the bot's display name) for chat responses.
-    """
-    import re
-    
-    if not content or not isinstance(content, str):
-        return None, content
-    
-    # Match "PlayerName: rest of message" at the start. PlayerName can have
-    # spaces but not colons. Be greedy on the rest.
-    match = re.match(r'^([^:\n]{1,32}):\s+(.+)$', content.strip(), re.DOTALL)
-    if match:
-        player_name = match.group(1).strip()
-        message_text = match.group(2).strip()
-        # Sanity check: skip if player_name looks like a timestamp or number
-        if player_name and not player_name.isdigit():
-            return player_name, message_text
-    
-    return None, content
-
 # Per-author chat-response cooldown (in-memory; cleared on daemon restart).
 # Key: str(author_id), Value: int(last_response_ts).
 _chat_cooldown = {}
-
-# Debug-mode item grants: keyword -> list of (item_id, count) to give via RCON.
-# When a player asks for water/food/medical in chat, SIMON spawns the items
-# directly via RCON `give` and confirms in #pz-molt. This is the "debug mode"
-# behavior — SIMON acts as a helpful admin rather than just giving advice.
-HELP_ITEM_MAP = {
-    # Water / thirst
-    "water":     [("Base.WaterBottle", 1)],
-    "drink":     [("Base.WaterBottle", 1)],
-    "thirsty":   [("Base.WaterBottle", 1)],
-    "dehydrated":[("Base.WaterBottle", 2)],
-    # Food / hunger
-    "food":      [("Base.CannedBeans", 2)],
-    "hungry":    [("Base.CannedBeans", 2)],
-    "eat":       [("Base.CannedBeans", 2)],
-    "starving":  [("Base.CannedBeans", 3)],
-    # Medical
-    "bandage":   [("Base.Bandage", 2)],
-    "hurt":      [("Base.Bandage", 2), ("Base.Pills", 1)],
-    "wound":     [("Base.Bandage", 2), ("Base.Pills", 1)],
-    "injured":   [("Base.Bandage", 2), ("Base.Pills", 1)],
-    "bleeding":  [("Base.Bandage", 3)],
-    "pain":      [("Base.Pills", 2)],
-    "sick":      [("Base.Pills", 2)],
-    "pills":     [("Base.Pills", 2)],
-    "medicine":  [("Base.Pills", 2)],
-    "antibiotics":[("Base.Antibiotics", 1)],
-}
-
-# Priority order for help trigger detection. First match wins.
-# We check more specific terms first (bleeding) before general ones (hurt).
-HELP_KEYWORDS_PRIORITY = (
-    "bleeding", "dehydrated", "starving", "injured",
-    "antibiotics", "bandage", "medicine",
-    "water", "drink", "thirsty",
-    "food", "hungry", "eat",
-    "wound", "hurt", "pain", "sick", "pills",
-    "help", "sos", "heal", "rescue", "dying",
-)
-
-def determine_help_items(content):
-    """Map help request content to PZ item IDs to give via RCON.
-    
-    Returns list of (item_id, count) tuples. Checks keywords in priority
-    order so more specific terms (bleeding -> 3 bandages) win over general
-    ones (hurt -> bandage + pills).
-    """
-    lower = content.lower()
-    for keyword in HELP_KEYWORDS_PRIORITY:
-        if keyword in HELP_ITEM_MAP and keyword in lower:
-            return HELP_ITEM_MAP[keyword]
-    # Default: water (most common urgent need)
-    return [("Base.WaterBottle", 1)]
-
-def give_player_item(player_name, item_id, count):
-    """Use RCON to give a player an item. Returns True on success."""
-    try:
-        result = subprocess.run(
-            [str(RCON_SCRIPT), "give", player_name, item_id, str(count)],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        if result.returncode == 0:
-            print(f"Gave {player_name} {count}x {item_id} via RCON")
-            return True
-        else:
-            print(f"ERROR: RCON give failed: {result.stderr}", file=sys.stderr)
-            return False
-    except subprocess.TimeoutExpired:
-        print(f"ERROR: RCON give timed out for {player_name}", file=sys.stderr)
-        return False
-    except Exception as e:
-        print(f"ERROR: RCON give exception: {type(e).__name__}: {e}", file=sys.stderr)
-        return False
 
 def should_respond_to_chat(content, author_id):
     """
@@ -424,9 +314,8 @@ def should_respond_to_chat(content, author_id):
     # Detect trigger category (priority order — most specific first)
     lower = stripped.lower()
     
-    # SOS / help requests — expand keyword set so water/food/medical
-    # requests trigger the debug-mode give path, not just generic help.
-    if any(kw in lower for kw in HELP_KEYWORDS_PRIORITY):
+    # SOS / help requests
+    if re.search(r'\b(sos|help|heal|rescue)\b', lower) or any(p in lower for p in ("help me", "i'm hurt", "im hurt", "bleeding", "dying")):
         return True, "help"
     
     # Direct mention
@@ -457,7 +346,7 @@ def generate_chat_response(content, player_name, trigger):
     return template.format(player=player_name or "survivor")
 
 
-async def fire_chat_response(channel, content, player_name, trigger, author_id, max_retries=2, given_items=None):
+async def fire_chat_response(channel, content, player_name, trigger, author_id, max_retries=2):
     """
     Send a chat response via Discord (mirrored to in-game via PZ chat relay).
     
@@ -471,26 +360,10 @@ async def fire_chat_response(channel, content, player_name, trigger, author_id, 
         trigger: trigger category from should_respond_to_chat
         author_id: author.id (string) — used for cooldown bookkeeping on success
         max_retries: total attempts (default 2)
-        given_items: list of (item_id, count) actually given via RCON (default None).
-            When present, the response confirms what was sent instead of using
-            the template advice.
     """
     import discord
     
-    if given_items:
-        # Build a confirmation that names the items sent. Stay in SIMON's
-        # bunker DJ voice but make it concrete.
-        names = []
-        for item_id, count in given_items:
-            short = item_id.replace("Base.", "").replace("_", " ")
-            if count > 1:
-                names.append(f"{count}x {short}")
-            else:
-                names.append(short)
-        item_str = ", ".join(names)
-        response = f"{player_name}, dropped {item_str} your way. Check your inventory. Simon, out."
-    else:
-        response = generate_chat_response(content, player_name, trigger)
+    response = generate_chat_response(content, player_name, trigger)
     print(f"Chat response to {player_name} ({trigger}): {response[:80]}...")
     
     retryable = (
@@ -546,8 +419,11 @@ async def main():
     intents.message_content = True
     client = discord.Client(intents=intents)
     
-    # Channel ID from environment
-    CHANNEL_ID = int(os.environ.get("PZ_DISCORD_CHANNEL_ID", "***REMOVED***"))
+    # Channel ID is REQUIRED from env. No default — do not hardcode personal channel IDs in source.
+    raw_channel_id = os.environ.get("PZ_DISCORD_CHANNEL_ID")
+    if not raw_channel_id:
+        raise SystemExit("PZ_DISCORD_CHANNEL_ID env var is required (set to your pz-molt channel id)")
+    CHANNEL_ID = int(raw_channel_id)
     
     @client.event
     async def on_ready():
@@ -593,10 +469,10 @@ async def main():
         if message.author == client.user:
             return
         
-        # Skip other bots (webhooks, etc.) — but allow PZ chat relay through
-        # so in-game chat messages and connection events reach the handler.
-        # The PZ server's Discord chat relay posts as bot ID PZ_CHAT_RELAY_BOT_ID.
-        if message.author.bot and message.author.id != PZ_CHAT_RELAY_BOT_ID:
+        # Skip other bots (webhooks, etc.) — only respond to humans and PZ
+        # server's Discord chat relay (which arrives as a bot author, but we
+        # handle that explicitly via the connection-event path).
+        if message.author.bot and message.author != client.user:
             return
         
         # Skip system messages (joins, pin notifications, etc.)
@@ -654,42 +530,25 @@ async def main():
         
         # Otherwise: chat response path. PZ in-game chat messages are mirrored
         # to #pz-molt via the Discord chat relay and arrive here as regular
-        # messages. The relay posts as bot 'servertest#9150' but prefixes the
-        # actual player name to the content: "StarbugStone: hey simon".
-        # Parse the real player name out so the response addresses them by name.
-        parsed_player, chat_text = parse_pz_chat_player(message.content)
-        effective_player = parsed_player or message.author.display_name
-        
+        # messages. Decide if SIMON should respond.
         should_respond, trigger = should_respond_to_chat(
-            chat_text, message.author.id
+            message.content, message.author.id
         )
         if should_respond:
-            print(f"Chat responder triggered ({trigger}) for {effective_player}: {chat_text[:60]}")
+            print(f"Chat responder triggered ({trigger}) for {message.author.display_name}: {message.content[:60]}")
             channel = client.get_channel(CHANNEL_ID)
             if channel is None:
                 print(f"ERROR: Could not resolve channel {CHANNEL_ID}", file=sys.stderr)
             else:
-                # Debug-mode behavior: when trigger is "help", determine which
-                # items the player needs from the request content and spawn
-                # them via RCON `give` before responding. This is SIMON's
-                # "admin mode" — actually helpful, not just poetic.
-                given_items = []
-                if trigger == "help":
-                    items = determine_help_items(chat_text)
-                    for item_id, count in items:
-                        if give_player_item(effective_player, item_id, count):
-                            given_items.append((item_id, count))
-                
                 await fire_chat_response(
                     channel=channel,
-                    content=chat_text,
-                    player_name=effective_player,
+                    content=message.content,
+                    player_name=message.author.display_name,
                     trigger=trigger,
                     author_id=message.author.id,
-                    given_items=given_items,
                 )
         else:
-            print(f"Chat message ignored (no trigger): {effective_player}: {chat_text[:60]}")
+            print(f"Chat message ignored (no trigger): {message.author.display_name}: {message.content[:60]}")
         
         # Always update message state so we know what we've seen
         try:
