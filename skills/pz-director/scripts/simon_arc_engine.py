@@ -1,44 +1,18 @@
 #!/usr/bin/env python3
-"""SIMON's narrative arc engine.
+"""SIMON narrative arc engine.
 
-An *arc* is a multi-beat story that unfolds across several ambient cron ticks.
-Each beat is a narration line SIMON can broadcast, optionally paired with a
-mutation (a server command via ``pz-console.sh``). Beats advance on time:
-``gapMin`` minutes must elapse since the last beat before the next one fires.
-
-Arc lifecycle
--------------
-1. **start_arc(arc_id)** — picks an arc from the catalog (``references/narrative-arcs.md``
-   loaded via :func:`load_catalog`), writes ``state/memory/arcs/active.json``.
-   Refuses to start if the previous arc finished within ``arc_reset_hours``
-   (default 4h) OR if an arc is already active.
-
-2. **advance_beat()** — called by the ambient cron tick. Returns the beat
-   payload (``{narration, mutation}``) when it's time to fire, or ``None``
-   to hold for another tick. Caller (the cron payload's LLM) decides what
-   to do with it — emit as final reply, optionally exec the mutation, log
-   the beat to history.
-
-3. **record_player_join / record_player_leave** — updates ``playersOnline``
-   on the active arc. Used by ``cleanup_stale_arc`` to detect orphan arcs.
-
-4. **cleanup_stale_arc()** — if the active arc has had no players online for
-   >30 min, gracefully finalize it (move summary to ``arcs/index.json``,
-   archive full arc state, log to global server-history, delete active.json).
-
-5. **finalize_arc(reason)** — called when the arc completes its final beat
-   OR is cancelled. Same archiving behavior as cleanup.
-
-6. **record_player_interaction(name, content)** — while an arc is active,
-   log player chats to the arc memory so SIMON can answer in-character.
+The arc engine is the single owner of narrative-arc state. Trigger helpers may
+ask whether a beat is ready, but they must not independently rewrite/finalize
+arc schemas. Player-facing context exposes only already-fired information.
 """
 from __future__ import annotations
 
 import json
+import os
+import random
 import re
 import time
 from pathlib import Path
-from typing import Any
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 MEMORY_DIR = SKILL_DIR / "state" / "memory"
@@ -57,87 +31,80 @@ def _read_json(path: Path, default):
     try:
         if not path.exists():
             return default
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return default
 
 
 def _write_json(path: Path, data) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        os.replace(tmp, path)
+    finally:
+        try:
+            tmp.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def load_catalog() -> dict:
-    """Parse the narrative-arcs.md catalog.
-
-    Schema: a markdown file with one fenced JSON block per arc set, plus
-    an ``## arcs`` section if there are multiple catalog sets. We expect
-    a single JSON object ``{"arcs": [{arcId, arcName, summary, beats}, ...]}``
-    inside the first fenced block we find tagged ```json. Falls back to an
-    empty catalog on parse failure so the system stays quiet instead of
-    crashing the cron.
-    """
     if not CATALOG_FILE.exists():
         return {"arcs": []}
-    text = CATALOG_FILE.read_text()
-    # Find the first ```json ... ``` fenced block.
-    m = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
-    if not m:
+    try:
+        text = CATALOG_FILE.read_text(encoding="utf-8")
+    except OSError:
+        return {"arcs": []}
+    match = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if not match:
         return {"arcs": []}
     try:
-        return json.loads(m.group(1))
+        data = json.loads(match.group(1))
     except json.JSONDecodeError:
         return {"arcs": []}
+    return data if isinstance(data, dict) else {"arcs": []}
 
 
 def pick_random_arc(exclude: list[str] | None = None) -> dict | None:
-    """Pick a random arc from the catalog. ``exclude`` is a list of arcIds
-    to skip (e.g. recently completed). Returns None if catalog is empty."""
-    import random
     catalog = load_catalog()
-    pool = [a for a in catalog.get("arcs", []) if a.get("arcId") not in (exclude or [])]
-    if not pool:
-        # fall back to the full catalog if everything was excluded
-        pool = catalog.get("arcs", [])
+    arcs = [arc for arc in catalog.get("arcs", []) if isinstance(arc, dict)]
+    excluded = set(exclude or [])
+    pool = [arc for arc in arcs if arc.get("arcId") not in excluded] or arcs
     return random.choice(pool) if pool else None
 
 
 def get_active_arc() -> dict | None:
-    return _read_json(ACTIVE_FILE, None)
+    value = _read_json(ACTIVE_FILE, None)
+    return value if isinstance(value, dict) else None
 
 
 def recent_completed_within_hours(hours: int) -> bool:
-    """True if an arc completed in the last ``hours``."""
-    idx = _read_json(INDEX_FILE, {"completed": []})
-    cutoff = int(time.time()) - (hours * 3600)
-    for entry in idx.get("completed", []):
-        if entry.get("ts", 0) >= cutoff:
-            return True
-    return False
+    index = _read_json(INDEX_FILE, {"completed": []})
+    cutoff = int(time.time()) - max(0, int(hours)) * 3600
+    completed = index.get("completed", []) if isinstance(index, dict) else []
+    return any(isinstance(entry, dict) and int(entry.get("ts", 0) or 0) >= cutoff for entry in completed)
 
 
 def start_arc(arc_id: str | None = None) -> dict | None:
-    """Start an arc. Returns the new active state, or None if refused."""
-    if get_active_arc():
-        return None  # already active
-    if recent_completed_within_hours(ARC_RESET_HOURS):
-        return None  # cooldown
+    if get_active_arc() or recent_completed_within_hours(ARC_RESET_HOURS):
+        return None
+
+    catalog = load_catalog()
+    arcs = [arc for arc in catalog.get("arcs", []) if isinstance(arc, dict)]
     if arc_id:
-        catalog = load_catalog()
-        chosen = next((a for a in catalog.get("arcs", []) if a.get("arcId") == arc_id), None)
-        if not chosen:
-            return None
+        chosen = next((arc for arc in arcs if arc.get("arcId") == arc_id), None)
     else:
-        # avoid re-running the most recent completed arc immediately
-        idx = _read_json(INDEX_FILE, {"completed": []})
-        last_id = (idx.get("completed", []) or [{}])[-1].get("arcId") if idx.get("completed") else None
-        chosen = pick_random_arc(exclude=[last_id] if last_id else [])
-        if not chosen:
-            return None
+        index = _read_json(INDEX_FILE, {"completed": []})
+        completed = index.get("completed", []) if isinstance(index, dict) else []
+        last_id = completed[-1].get("arcId") if completed and isinstance(completed[-1], dict) else None
+        chosen = pick_random_arc([last_id] if last_id else None)
+    if not chosen or not chosen.get("arcId"):
+        return None
 
     now = int(time.time())
     state = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "arcId": chosen["arcId"],
         "arcName": chosen.get("arcName", chosen["arcId"]),
         "summary": chosen.get("summary", ""),
@@ -145,8 +112,9 @@ def start_arc(arc_id: str | None = None) -> dict | None:
         "currentBeatIdx": 0,
         "beats": chosen.get("beats", []),
         "beatHistory": [],
-        "lastBeatTs": now,  # beat 0 can fire immediately
+        "lastBeatTs": now,
         "playersOnline": [],
+        "playersSeen": [],
         "lastPlayerLeftTs": None,
         "narrations": [],
         "playerInteractions": [],
@@ -155,15 +123,25 @@ def start_arc(arc_id: str | None = None) -> dict | None:
     return state
 
 
+def _remember_player(arc: dict, name: str) -> None:
+    if not name:
+        return
+    seen = arc.setdefault("playersSeen", [])
+    if name not in seen:
+        seen.append(name)
+
+
 def record_player_join(name: str) -> dict | None:
     arc = get_active_arc()
     if not arc:
         return None
+    _remember_player(arc, name)
     online = arc.setdefault("playersOnline", [])
     if name not in online:
         online.append(name)
+    if online:
         arc["lastPlayerLeftTs"] = None
-        _write_json(ACTIVE_FILE, arc)
+    _write_json(ACTIVE_FILE, arc)
     return arc
 
 
@@ -171,63 +149,64 @@ def record_player_leave(name: str) -> dict | None:
     arc = get_active_arc()
     if not arc:
         return None
+    _remember_player(arc, name)
     online = arc.setdefault("playersOnline", [])
     if name in online:
         online.remove(name)
-    arc["lastPlayerLeftTs"] = int(time.time())
+    if not online:
+        arc["lastPlayerLeftTs"] = int(time.time())
     _write_json(ACTIVE_FILE, arc)
     return arc
 
 
 _PLAYER_LIST_LINE = re.compile(
-    r"Players\s+connected\s+\((\d+)\)\s*:?\s*((?:\n?[A-Za-z0-9_\- ,]{1,64})*)",
+    r"Players\s+connected\s+\((\d+)\)\s*:?\s*((?:\n?[A-Za-z0-9_\- ,]{0,128})*)",
     re.IGNORECASE,
 )
 
 
 def sync_players_online_from_text(text: str) -> dict | None:
-    """Given a relay-bot response like
-    ``Players connected (3):\\nStone, Sarah, Mike``, update the active arc's
-    ``playersOnline`` + ``lastPlayerLeftTs``. Names present in the prior
-    state but missing from this list are treated as leaves (and a leave
-    timestamp is recorded so the 30-min cleanup rule can fire).
-
-    Called by the listener when it sees a relay-bot response in
-    ``#pz-molt-commands``. Idempotent and side-effect-free when the text
-    doesn't match the ``Players connected (N):`` pattern.
-    """
+    """Update active-arc roster from an authoritative `players` response."""
     if not text:
         return None
     arc = get_active_arc()
     if not arc:
         return None
-    m = _PLAYER_LIST_LINE.search(text)
-    if not m:
+    match = _PLAYER_LIST_LINE.search(text)
+    if not match:
         return None
-    raw_names = m.group(2) or ""
-    # Split on comma/newline, strip, drop empties. PZ-style names can
-    # have spaces but no commas.
-    names = [n.strip() for n in re.split(r"[,\n]", raw_names) if n.strip()]
-    prior_online = set(arc.get("playersOnline") or [])
-    new_online = set(names)
-    joined = sorted(new_online - prior_online)
-    left = sorted(prior_online - new_online)
 
-    arc["playersOnline"] = sorted(new_online)
-    if left:
-        arc["lastPlayerLeftTs"] = int(time.time())
-    elif new_online:
-        # Players are present again — clear any staleness timer.
+    expected_count = int(match.group(1))
+    raw_names = match.group(2) or ""
+    names = [name.strip() for name in re.split(r"[,\n]", raw_names) if name.strip()]
+    # If the bridge reports a count but omits/truncates names, do not fabricate
+    # identities. We can still reliably process the explicit zero-player case.
+    if expected_count > 0 and not names:
+        return {"joined": [], "left": [], "online": arc.get("playersOnline", []), "count": expected_count}
+
+    prior = set(arc.get("playersOnline") or [])
+    current = set(names)
+    for name in current:
+        _remember_player(arc, name)
+
+    joined = sorted(current - prior)
+    left = sorted(prior - current)
+    arc["playersOnline"] = sorted(current)
+    if current:
         arc["lastPlayerLeftTs"] = None
+    elif prior or expected_count == 0:
+        arc["lastPlayerLeftTs"] = int(time.time())
     _write_json(ACTIVE_FILE, arc)
-    return {"joined": joined, "left": left, "online": arc["playersOnline"]}
+    return {"joined": joined, "left": left, "online": arc["playersOnline"], "count": expected_count}
 
 
 def record_player_interaction(name: str, content: str, simon_reply_summary: str = "") -> dict | None:
     arc = get_active_arc()
     if not arc:
         return None
-    arc.setdefault("playerInteractions", []).append(
+    _remember_player(arc, name)
+    interactions = arc.setdefault("playerInteractions", [])
+    interactions.append(
         {
             "ts": int(time.time()),
             "player": name,
@@ -235,124 +214,140 @@ def record_player_interaction(name: str, content: str, simon_reply_summary: str 
             "simon_reply_summary": str(simon_reply_summary)[:200],
         }
     )
-    arc["playerInteractions"] = arc["playerInteractions"][-MAX_INTERACTIONS:]
+    arc["playerInteractions"] = interactions[-MAX_INTERACTIONS:]
     _write_json(ACTIVE_FILE, arc)
     return arc
 
 
 def active_arc_brief_for_player(name: str) -> str:
-    """Return a short arc-context paragraph for an LLM prompt when responding
-    to a player while an arc is active. Empty string if no arc."""
+    """Return only already-revealed context for a player-facing LLM prompt."""
     arc = get_active_arc()
     if not arc:
         return ""
-    beats = arc.get("beats", [])
-    idx = arc.get("currentBeatIdx", 0)
-    beat = beats[idx] if 0 <= idx < len(beats) else None
-    last_beat_text = arc.get("narrations", [])[-1][:160] if arc.get("narrations") else "(none yet)"
-    next_beat_narration = beat.get("narration", "") if beat else "(arc complete)"
-    interactions = [pi for pi in arc.get("playerInteractions", []) if pi.get("player") == name]
-    interaction_hint = ""
+
+    narrations = [str(value)[:220] for value in (arc.get("narrations") or [])[-3:] if value]
+    revealed = " | ".join(narrations) if narrations else "No arc broadcast has fired yet."
+    interactions = [
+        entry
+        for entry in (arc.get("playerInteractions") or [])
+        if isinstance(entry, dict) and entry.get("player") == name
+    ]
+    hint = ""
     if interactions:
-        last = interactions[-1]
-        interaction_hint = f" You last asked: '{last.get('content', '')[:80]}'. SIMON answered: '{last.get('simon_reply_summary', '')[:120]}'."
+        hint = f" Your last transmission in this situation was: '{str(interactions[-1].get('content', ''))[:100]}'."
     return (
-        f"Active arc: {arc.get('arcName', arc.get('arcId', '?'))}. "
-        f"Beat {idx + 1} of {len(beats)}. "
-        f"Latest SIMON narration: '{last_beat_text}'. "
-        f"Planned next beat: '{next_beat_narration}'.{interaction_hint}"
+        f"Active situation: {arc.get('arcName', arc.get('arcId', 'unknown'))}. "
+        f"Already revealed over the radio: {revealed}.{hint}"
     )
 
 
-def advance_beat() -> dict | None:
-    """Called by the ambient cron tick. Returns the beat payload when it's
-    time to fire, or None when the engine wants to hold.
+def is_beat_ready(now: int | None = None) -> bool:
+    arc = get_active_arc()
+    if not arc:
+        return False
+    beats = arc.get("beats") or []
+    try:
+        index = int(arc.get("currentBeatIdx", 0))
+    except (TypeError, ValueError):
+        return False
+    if index < 0 or index >= len(beats):
+        return False
+    beat = beats[index]
+    try:
+        gap_seconds = max(0, int(beat.get("gapMin", 0)) * 60)
+        last_beat = int(arc.get("lastBeatTs", 0) or 0)
+    except (AttributeError, TypeError, ValueError):
+        return False
+    current_time = int(time.time()) if now is None else int(now)
+    return (current_time - last_beat) >= gap_seconds
 
-    A beat fires when ``now - lastBeatTs >= beats[currentBeatIdx].gapMin * 60``.
-    Note: the cron payload's LLM may still hold or rewrite the narration;
-    this method just decides *mechanical* readiness, not narrative taste.
-    """
+
+def advance_beat() -> dict | None:
     arc = get_active_arc()
     if not arc:
         return None
-    beats = arc.get("beats", [])
-    idx = arc.get("currentBeatIdx", 0)
-    if idx >= len(beats):
-        # arc is past the end — let finalize_arc handle it
+    beats = arc.get("beats") or []
+    try:
+        index = int(arc.get("currentBeatIdx", 0))
+    except (TypeError, ValueError):
+        return None
+    if index >= len(beats):
         finalize_arc("completed")
         return None
-    beat = beats[idx]
-    now = int(time.time())
-    gap_sec = max(0, int(beat.get("gapMin", 0)) * 60)
-    if (now - int(arc.get("lastBeatTs", 0))) < gap_sec:
-        return None  # not yet
-
+    if not is_beat_ready():
+        return None
+    beat = beats[index]
     return {
-        "arcId": arc["arcId"],
-        "arcName": arc.get("arcName", arc["arcId"]),
-        "beatIdx": idx,
+        "arcId": arc.get("arcId"),
+        "arcName": arc.get("arcName", arc.get("arcId")),
+        "beatIdx": index,
         "narration": beat.get("narration", ""),
-        "mutation": beat.get("mutation"),  # may be None
+        "mutation": beat.get("mutation"),
         "totalBeats": len(beats),
     }
 
 
 def mark_beat_fired(payload: dict, simon_narration: str = "") -> dict | None:
-    """Called by the cron payload after it actually broadcasts the beat and
-    (optionally) executes the mutation. Records to history, advances idx,
-    appends narration to arc.narrations[], and bumps lastBeatTs."""
     arc = get_active_arc()
     if not arc:
         return None
+    # A beat that promised a real mutation may not advance when the caller
+    # explicitly reports that mutation as unconfirmed/failed.
+    if payload.get("mutation") and payload.get("mutation_executed") is not True:
+        return None
     now = int(time.time())
-    arc.setdefault("beatHistory", []).append(
+    actual = simon_narration or payload.get("narration", "")
+    history = arc.setdefault("beatHistory", [])
+    history.append(
         {
             "ts": now,
             "beatIdx": payload.get("beatIdx"),
             "narration_planned": payload.get("narration", ""),
-            "narration_actual": simon_narration[:600] if simon_narration else payload.get("narration", ""),
+            "narration_actual": str(actual)[:600],
             "mutation_executed": bool(payload.get("mutation_executed")),
             "mutation": payload.get("mutation"),
         }
     )
-    arc.setdefault("narrations", []).append(simon_narration or payload.get("narration", ""))
-    arc["narrations"] = arc["narrations"][-MAX_NARRATIONS:]
+    narrations = arc.setdefault("narrations", [])
+    narrations.append(str(actual))
+    arc["narrations"] = narrations[-MAX_NARRATIONS:]
     arc["currentBeatIdx"] = int(arc.get("currentBeatIdx", 0)) + 1
     arc["lastBeatTs"] = now
+    for player in arc.get("playersOnline") or []:
+        _remember_player(arc, player)
     _write_json(ACTIVE_FILE, arc)
 
-    # Auto-finalize if past the last beat
-    if arc["currentBeatIdx"] >= len(arc.get("beats", [])):
+    if arc["currentBeatIdx"] >= len(arc.get("beats") or []):
         finalize_arc("completed")
     return arc
 
 
 def cleanup_stale_arc() -> dict | None:
-    """If the active arc has had no players online for >30 min, finalize it
-    as 'abandoned' (still keep a summary in the global lore)."""
     arc = get_active_arc()
     if not arc:
         return None
-    online = arc.get("playersOnline") or []
+    if arc.get("playersOnline"):
+        return None
     last_left = arc.get("lastPlayerLeftTs")
-    if online:
-        return None  # players present — arc lives
     if not last_left:
-        return None  # never had anyone — let the cron start_arc gate handle this
-    now = int(time.time())
-    if (now - int(last_left)) >= (STALE_PLAYER_MINUTES * 60):
+        return None
+    if int(time.time()) - int(last_left) >= STALE_PLAYER_MINUTES * 60:
         return finalize_arc("abandoned_no_players_30m")
     return None
 
 
 def finalize_arc(reason: str = "completed") -> dict | None:
-    """Move the active arc to the completed index, archive full state to
-    archive/, log a summary to global server-history, delete active.json."""
     arc = get_active_arc()
     if not arc:
         return None
     now = int(time.time())
-    beats = arc.get("beats", [])
+    beats = arc.get("beats") or []
+    interacted = {
+        entry.get("player")
+        for entry in (arc.get("playerInteractions") or [])
+        if isinstance(entry, dict) and entry.get("player")
+    }
+    involved = sorted(set(arc.get("playersSeen") or []) | interacted)
     summary = {
         "arcId": arc.get("arcId"),
         "arcName": arc.get("arcName"),
@@ -360,16 +355,18 @@ def finalize_arc(reason: str = "completed") -> dict | None:
         "ts": now,
         "tsStart": arc.get("arcStartedTs", now),
         "durationMin": (now - int(arc.get("arcStartedTs", now))) // 60,
-        "beatsFired": len(arc.get("beatHistory", [])),
+        "beatsFired": len(arc.get("beatHistory") or []),
         "totalBeats": len(beats),
-        "playersInvolved": sorted({pi.get("player") for pi in arc.get("playerInteractions", []) if pi.get("player")}),
-        "narrations": arc.get("narrations", [])[-8:],
+        "playersInvolved": involved,
+        "narrations": (arc.get("narrations") or [])[-8:],
         "reason": reason,
     }
 
-    # 1. Append to arcs/index.json
-    idx = _read_json(INDEX_FILE, {"completed": []})
-    idx.setdefault("completed", []).append(
+    index = _read_json(INDEX_FILE, {"completed": [], "schemaVersion": 2})
+    if not isinstance(index, dict):
+        index = {"completed": [], "schemaVersion": 2}
+    completed = index.setdefault("completed", [])
+    completed.append(
         {
             "arcId": summary["arcId"],
             "arcName": summary["arcName"],
@@ -377,21 +374,21 @@ def finalize_arc(reason: str = "completed") -> dict | None:
             "durationMin": summary["durationMin"],
             "reason": summary["reason"],
             "summary": arc.get("summary", ""),
-            "playersInvolved": summary["playersInvolved"],
+            "playersInvolved": involved,
         }
     )
-    # Cap the index to the last 50 completed arcs
-    idx["completed"] = idx["completed"][-50:]
-    _write_json(INDEX_FILE, idx)
+    index["completed"] = completed[-50:]
+    index["schemaVersion"] = max(2, int(index.get("schemaVersion", 1) or 1))
+    _write_json(INDEX_FILE, index)
 
-    # 2. Archive full arc state
     archive_dir = ARCS_DIR / "archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
-    arc_stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(summary["ts"]))
-    archive_path = archive_dir / f"{arc.get('arcId', 'arc')}-{arc_stamp}.json"
-    _write_json(archive_path, {"finalized_reason": reason, "arc_state": arc, "summary": summary})
+    stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(now))
+    _write_json(
+        archive_dir / f"{arc.get('arcId', 'arc')}-{stamp}.json",
+        {"finalized_reason": reason, "arc_state": arc, "summary": summary},
+    )
 
-    # 3. Log to global server-history
     try:
         from simon_global_memory import log_event
         log_event(
@@ -401,20 +398,17 @@ def finalize_arc(reason: str = "completed") -> dict | None:
                 "arcId": summary["arcId"],
                 "arcName": summary["arcName"],
                 "durationMin": summary["durationMin"],
-                "playersInvolved": summary["playersInvolved"],
+                "playersInvolved": involved,
                 "summary": arc.get("summary", ""),
-                "last_narration": (arc.get("narrations") or [""])[-1][:280],
+                "last_narration": ((arc.get("narrations") or [""])[-1])[:280],
             }
         )
     except Exception:
-        # Don't fail finalize if the global memory module is unavailable
         pass
 
-    # 4. For each player who was involved, save a short arc recap into
-    #    their per-player memory so they get a callback next time.
     try:
         from simon_player_memory import append_arc_recap
-        for player in summary["playersInvolved"]:
+        for player in involved:
             try:
                 append_arc_recap(
                     player,
@@ -426,27 +420,23 @@ def finalize_arc(reason: str = "completed") -> dict | None:
     except Exception:
         pass
 
-    # 5. Delete active.json
-    if ACTIVE_FILE.exists():
+    try:
         ACTIVE_FILE.unlink()
-
+    except FileNotFoundError:
+        pass
     return summary
 
 
 def reset_all_arc_memory() -> int:
-    """Hard-reset: delete active.json + clear the completed index. Used by
-    simon_reset_world.py."""
     removed = 0
     if ACTIVE_FILE.exists():
         ACTIVE_FILE.unlink()
         removed += 1
     if INDEX_FILE.exists():
-        _write_json(INDEX_FILE, {"completed": [], "schemaVersion": 1})
+        _write_json(INDEX_FILE, {"completed": [], "schemaVersion": 2})
         removed += 1
     return removed
 
 
 if __name__ == "__main__":
-    import json
-    # Quick listing of catalog arcs so operators can preview.
     print(json.dumps(load_catalog(), indent=2)[:1200])

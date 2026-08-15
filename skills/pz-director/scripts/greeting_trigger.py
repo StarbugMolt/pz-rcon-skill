@@ -1,38 +1,36 @@
 #!/usr/bin/env python3
-"""Trigger gate for the SIMON Greeting Dispatcher cron job.
-
-Returns {"fire": true} only if state/greeting-queue.json has pending entries.
-No Discord posts, no LLM calls — just a file read.
-
-Designed for a 1-minute cron schedule so greetings fire within ~60s of
-a player connection event being queued by the listener.
-"""
+"""Fail-closed trigger gate for the SIMON Greeting Dispatcher cron."""
 import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from simon_online_gate import check_players_online
+
 QUEUE_FILE = Path(__file__).resolve().parent.parent / "state" / "greeting-queue.json"
 
 
-def emit(fire: bool) -> None:
-    print(json.dumps({"fire": fire}))
+def emit(fire: bool, reason: str) -> None:
+    print(json.dumps({"fire": fire, "reason": reason}, separators=(",", ":")))
     sys.exit(0)
 
 
 def main() -> None:
-    if not QUEUE_FILE.exists():
-        emit(False)
+    # A stale queue must never wake the LLM after everyone has disconnected.
+    presence = check_players_online()
+    if not presence.get("online"):
+        emit(False, "offline")
 
     try:
-        queue = json.loads(QUEUE_FILE.read_text())
+        queue = json.loads(QUEUE_FILE.read_text()) if QUEUE_FILE.exists() else {}
     except (json.JSONDecodeError, OSError):
-        emit(False)
+        emit(False, "queue-unreadable")
 
     pending = queue.get("pending", [])
-    if pending and len(pending) > 0:
-        emit(True)
+    if isinstance(pending, list) and pending:
+        emit(True, "pending-and-online")
 
-    emit(False)
+    emit(False, "no-pending-greeting")
 
 
 if __name__ == "__main__":

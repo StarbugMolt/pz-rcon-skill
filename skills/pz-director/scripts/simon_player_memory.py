@@ -8,7 +8,7 @@ Each survivor on the PZ server gets their own profile file under
 - arc recaps captured while an arc was unraveling
 - free-form notes SIMON accumulates about the player
 
-The listener (``simon_fast_listener.py``) calls ``bump_visit`` on connection
+The listener (``simon_radio_listener.py``) calls ``bump_visit`` from an authoritative log-channel connection event
 and ``record_interaction`` on chat. The ambient cron payload reads profiles
 via ``get_brief`` to surface player context in narrations, and via
 ``append_arc_recap`` to save an entry to a player's file while a narrative
@@ -66,7 +66,15 @@ def _read_json(path: Path, default):
 
 def _write_json(path: Path, data) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        os.replace(tmp, path)
+    finally:
+        try:
+            tmp.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def load_index() -> dict:

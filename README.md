@@ -1,174 +1,82 @@
-# pz-director (OpenClaw Skill) — Project Zomboid Atmosphere Director
+# pz-director — Project Zomboid Atmosphere Director
 
-This repository contains an OpenClaw skill called **`pz-director`**.
+This repository contains the OpenClaw skill used by SIMON, the bunker-radio survivor/in-world GM for a Project Zomboid Build 42 server.
 
-It's designed to make a **Project Zomboid** dedicated server feel more alive by using **Discord-first** architecture:
-- SIMON (the AI radio operator) broadcasts in-character narrative messages to `#pz-molt`
-- PZ's native Discord chat relay mirrors the channel to in-game chat automatically
-- Server-state mutations (items, vehicles, events, weather) go through the PZ console via a **second** Discord channel (`#pz-molt-commands`) that the PZ server's relay bot reacts to
-- **No RCON** — RCON is deprecated on this controller host; the PZ server's Discord is the only mutation path
+The repository name `pz-rcon-skill` is legacy. The active skill is `pz-director`, using a Discord-first architecture rather than RCON.
 
-The repo is named `pz-rcon-skill` for legacy/redirect reasons. The skill inside is `pz-director`.
+## Authoritative instructions
 
-It intentionally does **NOT** include moderation or server lifecycle control (no bans/whitelist/shutdown/etc.).
+`skills/pz-director/SKILL.md` is the single operational instruction surface for SIMON. Do not duplicate item lists, concrete command values, or alternate personality rules in this README.
 
-## Contents
+## Runtime trust boundary
 
-- `skills/pz-director/` — the skill folder
-  - `SKILL.md` — skill instructions (what the agent loads)
-  - `scripts/pz-console.sh` — helper wrapper that posts to the `#pz-molt-commands` channel
-  - `scripts/simon_fast_listener.py` — Discord listener that reacts to relay-bot messages
-  - `references/` — extra docs and mod/vanilla catalogs
-- `skills/pz-director.skill` — packaged skill file (zip with `.skill` extension)
-- `skills/morning-check/` — companion utility skill (scheduled Gmail + GitHub checks)
+The hardened runtime deliberately separates fast dialogue from game mutation:
 
-> **Note:** `.skill` is just a **ZIP archive** with a different extension. GitHub will show it as a binary blob. To inspect it, download it and rename to `.zip` to unpack.
+- `skills/pz-director/scripts/simon_radio_listener.py` — player-facing fast chat. The model cannot choose server mutations; a deterministic helper may perform a verified occasional/test-mode supply gift.
+- scheduled director turns — bounded scenario/GM decisions after Python preflight permits an LLM turn.
+- `skills/pz-director/scripts/pz-console.sh` — explicit server mutation transport with exact-relay confirmation.
 
-## Prerequisites
+The old `simon_fast_listener.py` implementation has been removed.
 
-### 1) Enable Discord on your PZ server
+## Zero-player LLM invariant
 
-Edit your server config (often `servertest.ini`) to include:
+No scheduled model turn should exist until its Python trigger positively confirms at least one PZ player is online. The active direct radio listener performs the same authoritative preflight immediately before its external chat-completion request.
+
+A stale join event or queued greeting is not sufficient proof that somebody is still online.
+
+## Build 42 Discord roles
+
+Current Project Zomboid Build 42 configuration separates Discord into three channel-name roles:
 
 ```ini
-DiscordEnable=true
-<DISCORD_TOKEN>=YOUR_BOT_TOKEN
-DiscordChannelID=YOUR_PZ_MOLT_CHANNEL_ID
-DiscordCommandChannel=YOUR_PZ_MOLT_COMMANDS_CHANNEL_ID
+DiscordChatChannel=<chat-channel-name>
+DiscordLogChannel=<log-channel-name>
+DiscordCommandChannel=<command-channel-name>
 ```
 
-The PZ server's built-in Discord bridge mirrors `#pz-molt` ↔ in-game chat. The commands channel is the server's mutation surface.
+- Chat: player chat and SIMON's player-facing broadcasts.
+- Log: read-only observation for compact player login/logout notifications and conservatively verified death announcements.
+- Command: server-console traffic.
 
-### 2) Set up your relay bot
+The runtime consumes chat, command traffic, and conservative lifecycle/death notifications from the dedicated log channel. Discord notifications do not need coordinates; coordinates are optional metadata only if a detailed line happens to include them. Human-readable death announcements are accepted only when the victim matches a survivor already known to SIMON. Broader mod/server-event normalization remains future work.
 
-The PZ server's Discord relay bot must be invited to both channels. Record its **user ID** — SIMON filters server responses by `author.id`, never by username (the bot can post under several display names depending on server config).
+## Fast-model documentation rule
 
-### 3) Configure env
+Values inside angle brackets, such as `<PlayerName>` or `<Module.Item>`, are documentation placeholders only. They are never real values or defaults.
 
-Copy `skills/pz-director/.env.example` to `~/.env` and fill in:
+Concrete object examples are deliberately kept out of model-facing syntax instructions so a smaller model cannot anchor on them as preferred values.
 
-- `PZ_DISCORD_CHANNEL_ID` — `#pz-molt` chat channel
-- `PZ_DISCORD_COMMANDS_CHANNEL_ID` — `#pz-molt-commands` console channel
-- `PZ_RELAY_BOT_ID` — the relay bot's user ID
-- `PZ_ENABLED_MODS` — comma-separated enabled mod folder names
+## Repository layout
 
-## Quick start
+- `skills/pz-director/SKILL.md` — authoritative SIMON personality, GM and runtime contract.
+- `skills/pz-director/.env.example` — non-secret runtime-routing template.
+- `skills/pz-director/scripts/simon_radio_listener.py` — hardened player listener plus deterministic log observation and delivery-readiness capture.
+- `skills/pz-director/scripts/simon_delivery.py` — guarded large-delivery path: outside-ready presence check, vehicle catalogue validation, confirmed chopper cue and one-time-token vehicle spawn.
+- `skills/pz-director/scripts/simon_log_events.py` — conservative login/logout/death log parser.
+- `skills/pz-director/scripts/pz-console.sh` — confirmed command-channel wrapper.
+- `skills/pz-director/scripts/simon_arc_engine.py` — canonical narrative-arc state owner.
+- `skills/pz-director/references/project-zomboid-lore.md` — world/lore knowledge.
+- `skills/pz-director/references/hardening-review.md` — implemented/future hardening status.
+- `skills/pz-director/references/catalogs/` — vanilla and per-mod references.
+- `SETUP-OPS.md` — operator setup notes.
+- `skills/pz-director.skill` — generated compatibility/archive artifact.
 
-```bash
-# Test the console wrapper
-./skills/pz-director/scripts/pz-console.sh players
+## Catalogue / scenario discipline
 
-# Broadcast (cron announce delivery auto-posts to #pz-molt)
-# (no command needed — just emit the broadcast as the final assistant turn;
-# the cron layer mirrors it to #pz-molt and PZ mirrors that to in-game chat)
+The enabled mod list currently contains 38 mod IDs paired with 38 Workshop IDs, with matching active reference files at repository level. File presence does not automatically prove that a mod provides a spawnable item or vehicle.
 
-# Run the listener (requires systemd user service or manual launch)
-python3 skills/pz-director/scripts/simon_fast_listener.py
-```
+`SKILL.md` defines the conservative asset-ID rules. Built-in narrative arcs use documented wrapper aliases and checked-in verified vehicle references rather than raw/guessed server commands.
 
-## What you can do
+## Lore / roleplay
 
-### See who's online
-```bash
-./skills/pz-director/scripts/pz-console.sh players
-```
+The Project Zomboid lore reference distinguishes confirmed canon, official supplemental material, in-world claims and theories. SIMON must preserve those distinctions, remain period-correct to 1993, protect player agency and private memory, and never expose future scenario beats in direct chat.
 
-### Reward players with items
-```bash
-./skills/pz-director/scripts/pz-console.sh give "PlayerName" Base.Axe 1
-./skills/pz-director/scripts/pz-console.sh give "PlayerName" Base.ShotgunShells 12
-```
+## Generated skill artifact
 
-### Spawn a vehicle
-```bash
-./skills/pz-director/scripts/pz-console.sh vehicle Base.VanAmbulance "PlayerName"
-```
+`skills/pz-director.skill` is a generated compatibility/archive artifact. Current OpenClaw Git/local installation uses a skill directory containing `SKILL.md`; do not assume the ZIP is directly installable.
 
-### Trigger events
-```bash
-./skills/pz-director/scripts/pz-console.sh horde 50 "PlayerName"
-./skills/pz-director/scripts/pz-console.sh chopper
-./skills/pz-director/scripts/pz-console.sh gunshot
-./skills/pz-director/scripts/pz-console.sh alarm
-```
-
-### Control weather
-```bash
-./skills/pz-director/scripts/pz-console.sh rain start
-./skills/pz-director/scripts/pz-console.sh storm 2
-./skills/pz-director/scripts/pz-console.sh clear
-```
-
-## Architecture
-
-```
-┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
-│ SIMON cron turn │─────▶│  #pz-molt (chat) │─────▶│   PZ in-game    │
-│  (final turn)   │ DM   │  Discord channel │ DM    │   (chat relay)  │
-└─────────────────┘      └──────────────────┘      └─────────────────┘
-                                  │
-                                  │ (PZ's Discord chat relay auto-mirror)
-                                  ▼
-                          players see broadcasts
-                          in-game as `[Radio]: ...`
-
-┌─────────────────┐      ┌──────────────────────┐      ┌─────────────────┐
-│   pz-console.sh │─────▶│ #pz-molt-commands    │─────▶│ PZ server       │
-│  (mutation)     │ DM   │ Discord channel      │ DM    │ console         │
-│                 │      │ (relay bot forwards) │      │ (state change)  │
-└─────────────────┘      └──────────────────────┘      └─────────────────┘
-                                  │
-                                  │ (relay bot posts the server's response)
-                                  ▼
-                          SIMON reads the response
-                          and continues the loop
-```
-
-**Why two channels and a bot-only filter?** The commands channel is the new game-server console interface. Letting any human or arbitrary bot post there would let any channel member social-engineer SIMON into echoing arbitrary text back into the game server. The PZ relay bot is the only trusted originator — filter on `message.author.id`, **never** on `author.username`.
-
-## Reference Catalogs
-
-To keep lookup clean and deterministic, the skill uses structured catalogs:
-
-- Vanilla items: `skills/pz-director/references/catalogs/vanilla/items-full.md`
-- Vanilla vehicles: `skills/pz-director/references/catalogs/vanilla/vehicles-full.md`
-- Mod templates/files: `skills/pz-director/references/catalogs/mods/`
-  - Naming convention: `mod-<modname>-items.md`
-
-### Active mod scope
-
-Enabled mods are declared in `~/.env` → `PZ_ENABLED_MODS` (comma-separated mod IDs).
-
-Skill lookup policy:
-1. Always allow all entries from vanilla catalogs.
-2. Only allow mod catalog entries for mods present in `PZ_ENABLED_MODS`.
-
-### Env templates
-
-- Local secrets/runtime config: `~/.env` (not committed)
-- Shareable template: `skills/pz-director/.env.example`
-
-## Maintenance rule (project workflow)
-
-If you modify the `pz-director` skill in this repo, you must **commit and push** the updates so others can pull the latest version.
-
-## Installing the skill into OpenClaw
-
-If you're using OpenClaw skills:
-- Import the packaged `skills/pz-director.skill`, or
-- Copy the `skills/pz-director/` folder into your skills directory.
-
-## Safety notes
-
-- Treat the relay bot ID as a secret identifier — don't commit it.
-- Use `PZ_DISCORD_COMMANDS_CHANNEL_ID` for game-state mutations only — never post player-facing chatter there.
-- Keep broadcasts in-character — SIMON is the bunker radio operator, not a service bot.
+Whenever `skills/pz-director/` changes, rebuild and validate the artifact before distributing it.
 
 ## License
 
 MIT — see `LICENSE`.
-
-## Operator Setup & Relay Runbook
-
-For installation, Discord relay back-and-forth notes, and mod onboarding workflow, see:
-- `SETUP-OPS.md`
