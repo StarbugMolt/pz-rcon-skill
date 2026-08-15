@@ -80,10 +80,10 @@ def check_players_online(timeout_seconds: int = 8, env_file: str | None = None) 
         return {"online": False, "count": 0, "reason": "missing-config"}
 
     target = f"channel:{channel_id}"
-    read_cmd = ["openclaw", "message", "read", "--channel", "discord", "--target", target, "--limit", "10"]
+    read_cmd = ["openclaw", "message", "read", "--channel", "discord", "--target", target, "--limit", "10", "--json"]
 
     try:
-        before = _run(read_cmd, timeout=6)
+        before = _run(read_cmd, timeout=15)
     except (OSError, subprocess.TimeoutExpired):
         return {"online": False, "count": 0, "reason": "baseline-read-failed"}
     if before.returncode != 0:
@@ -97,7 +97,7 @@ def check_players_online(timeout_seconds: int = 8, env_file: str | None = None) 
             "--channel", "discord",
             "--target", target,
             "--message", "players",
-        ], timeout=6)
+        ], timeout=15)
     except (OSError, subprocess.TimeoutExpired):
         return {"online": False, "count": 0, "reason": "players-send-failed"}
     if sent.returncode != 0:
@@ -107,7 +107,7 @@ def check_players_online(timeout_seconds: int = 8, env_file: str | None = None) 
     while time.monotonic() < deadline:
         time.sleep(0.5)
         try:
-            result = _run(read_cmd, timeout=6)
+            result = _run(read_cmd, timeout=15)
         except (OSError, subprocess.TimeoutExpired):
             continue
         if result.returncode != 0:
