@@ -6,7 +6,7 @@ This document records the August 2026 hardening pass for the Discord-first Proje
 
 ### Implemented in this branch
 
-- **Zero-player LLM gating:** ambient and greeting scheduled paths call the Python online-player gate before they can return `fire=true`; the active direct radio listener performs the same preflight immediately before its external chat-completion request.
+- **Zero-player LLM gating:** ambient and greeting scheduled paths call the Python online-player gate before they can return `fire=true`; the direct radio listener treats an inbound relay message as presence proof instead of re-probing the roster on the chat path, and the gate itself is tiered (relay-staleness check → persistent negative cache → short positive cache → authoritative `Players connected (N)` probe) so a cold or down server fails fast rather than timing out the cron trigger.
 - **Fast-model trust boundary:** the active chat model cannot select mutations. A deterministic `simon_supply.py` helper may separately execute a verified occasional/test-mode item gift and expose only the confirmed result to the model.
 - **Legacy listener removed:** the older mutation-capable `simon_fast_listener.py` is no longer part of the source skill.
 - **Command confirmation hardening:** `pz-console.sh` serializes confirmed requests, snapshots a relay-message baseline, requires the exact configured relay user ID, rejects unknown aliases, and returns non-zero on timeout/recognized failures.
@@ -86,6 +86,8 @@ Logical chat keys are:
 - direct Discord user: `discord:<user id>`.
 
 A per-key in-flight guard prevents one survivor from starting simultaneous response turns.
+
+The deployed listener additionally enforces a **20 s per-survivor reply cooldown**: the first transmission is always answered, follow-ups inside the window are suppressed. This is a deliberate change from the original "no normal-chat cooldown" rule, recorded here so the runtime instructions (`SKILL.md`) and this review stay in sync with the deployed code.
 
 The old `simon_fast_listener.py` path is removed. This also closes its larger trust issue: the old fast model could propose arbitrary item IDs and trigger item mutations. The new fast listener is dialogue-only, so a smaller model can improvise roleplay but cannot mutate the server.
 
