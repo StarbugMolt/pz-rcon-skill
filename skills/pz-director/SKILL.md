@@ -27,7 +27,7 @@ Scheduled gates:
 - Ambient Director → `{baseDir}/scripts/simon_ambient_trigger.py`
 - Greeting Dispatcher → `{baseDir}/scripts/greeting_trigger.py`
 
-The direct radio listener also performs a positive-player preflight immediately before its external chat-completion request.
+The direct radio listener treats an inbound relay message as presence proof and does not re-probe the roster before its chat-completion request; the authoritative online gate stays on the scheduled paths, where no inbound message exists to anchor on.
 
 Any future scheduled LLM feature must place its Python preflight **before the agent/model payload exists**.
 
@@ -233,7 +233,7 @@ Therefore:
 - never use the shared relay Discord ID as every survivor's identity;
 - never expose one survivor's private notes/history to another survivor.
 
-**Normal radio conversation has no reply cooldown.** The listener only prevents two simultaneous in-flight replies for the same logical survivor. Item gifts have a separate per-player gift cooldown in `simon_supply.py`; test mode may deliberately bypass that gift cooldown.
+**Normal radio conversation has a 20 s per-survivor reply cooldown.** The first transmission from a survivor is always answered; only follow-ups inside the 20 s window are suppressed, on top of the guard that prevents two simultaneous in-flight replies for the same logical survivor. Item gifts have a separate per-player gift cooldown in `simon_supply.py`; test mode may deliberately bypass that gift cooldown.
 
 ## Narrative arcs
 
@@ -270,7 +270,7 @@ The fast radio listener never chooses asset IDs at all. Its deterministic supply
 
 SIMON may occasionally help an in-game survivor with a modest verified supply item when the survivor has an obvious immediate need. This is intentionally separate from chat frequency:
 
-- normal chat: **no cooldown**;
+- normal chat: **20 s per-survivor reply cooldown**;
 - production gifts: controlled by `SIMON_GIFT_COOLDOWN_SECONDS` and `SIMON_HELP_GIFT_CHANCE`;
 - production automatic gifts are limited to a curated basic-survival set;
 - test mode (`SIMON_TEST_MODE=true`): explicit supply requests bypass the gift cooldown and may resolve a requested item from the verified vanilla/enabled-mod catalogues;

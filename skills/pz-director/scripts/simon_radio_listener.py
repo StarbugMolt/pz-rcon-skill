@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""SIMON fast Discord listener for Project Zomboid Build 42.
+"""SIMON Radio Listener for Project Zomboid Build 42.
+
+Three channels: chat / commands / log. Hardened in PR #1 (merged 2026-08-14).
+This file replaces the old `simon_fast_listener.py`.
 
 The fast direct-chat model never chooses game mutations. It may answer player
 radio transmissions in character while a deterministic supply helper may,
@@ -392,6 +395,28 @@ HELP_KEYWORDS = (
     "help", "sos", "rescue", "dying", "i need", "could use", "running low",
 )
 _chat_inflight: set[str] = set()
+_REPLY_COOLDOWN_SECONDS = 20
+_last_reply_ts: dict[str, float] = {}
+
+
+def _cooldown_allows(cooldown_key: str) -> bool:
+    """Per-player cooldown so we don't spam replies back-to-back.
+
+    Only suppresses follow-up replies inside the window; the first reply to a
+    survivor always goes through.
+    """
+    now = time.time()
+    last = _last_reply_ts.get(str(cooldown_key), 0.0)
+    if now - last < _REPLY_COOLDOWN_SECONDS:
+        return False
+    _last_reply_ts[str(cooldown_key)] = now
+    # Bound the dict so it doesn't grow forever if many survivor keys cycle.
+    if len(_last_reply_ts) > 256:
+        cutoff = now - (_REPLY_COOLDOWN_SECONDS * 10)
+        stale = [k for k, ts in _last_reply_ts.items() if ts < cutoff]
+        for k in stale:
+            _last_reply_ts.pop(k, None)
+    return True
 
 
 def should_respond_to_chat(content: str, cooldown_key: str) -> tuple[bool, str | None]:
@@ -411,6 +436,15 @@ def should_respond_to_chat(content: str, cooldown_key: str) -> tuple[bool, str |
         return True, "status"
     if "?" in text and len(text) > 5:
         return True, "question"
+
+    # General fallback: any non-trivial transmission from a verified PZ
+    # survivor gets a reply. Cooldown (enforced in the caller) prevents
+    # spamming when a survivor rapid-fires short messages. Discord-direct
+    # callers (cooldown_key prefix "discord:") are intentionally excluded —
+    # we don't open up the radio to unverified humans.
+    if key.startswith("pz:") and len(text) >= 12 and not text.startswith("("):
+        return True, "general"
+
     return False, None
 
 
@@ -542,35 +576,52 @@ def call_chat_completion(messages: list[dict[str, str]], timeout: int = 12) -> s
     if not ZAI_API_KEY:
         print("WARNING: ZAI_API_KEY is unavailable to the listener process", file=sys.stderr)
         return None
-    if check_players_online is None:
-        print("LLM skipped: online-player gate unavailable", file=sys.stderr)
-        return None
 
-    # TOP PRIORITY: no LLM call unless an authoritative fresh roster proves N>0.
-    try:
-        presence = check_players_online(timeout_seconds=8)
-    except Exception as exc:
-        print(f"LLM skipped: online-player preflight failed: {exc}", file=sys.stderr)
-        return None
-    if not presence.get("online") or int(presence.get("count", 0) or 0) <= 0:
-        print(f"LLM skipped: no confirmed online players ({presence.get('reason', 'unknown')})")
-        return None
+    # Chat-path bypass: an incoming relay message IS proof the survivor is
+    # online at this instant. The strict roster probe is reserved for the
+    # cron greeting path, where there's no inbound message to anchor on.
+    # The chat path used to call check_players_online() here; that gate
+    # raced with the cron's same-minute probe and could transiently return
+    # baseline-read-failed, vetoing legitimate replies. Trust the wire.
 
     import urllib.request
     request = urllib.request.Request(
         ZAI_API_URL,
         data=json.dumps({
-            "model": "glm-5.2",
+            "model": "glm-5.3",
             "messages": messages,
             "max_tokens": 260,
             "temperature": 0.65,
+            # ZAI's gateway applies a default stop-sequence config that can
+            # terminate the response mid-JSON string (finish_reason="length"
+            # with content like {"reply":"...cut off"). The contract reply is
+            # single-line JSON so disabling stops is safe here.
+            "stop": [],
+            # GLM-5.3 is a reasoning model. ZAI's gateway enables thinking
+            # mode for non-trivial prompts like the complex SIMON system
+            # prompt (identity + voice + arc context + supply context).
+            # reasoning_effort consumes the max_tokens budget before any
+            # reply content is produced (zero content, 257 reasoning tokens).
+            # We don't want reasoning on this path — the prompt is already
+            # structured so the model just needs to write a short reply.
+            "thinking": {"type": "disabled"},
+            # Force JSON output. ZAI's gateway supports OpenAI-style
+            # response_format for GLM-5.3 — without this, the model
+            # occasionally writes prose instead of the contracted
+            # {"reply":"..."} shape (one-off non-deterministic misses,
+            # parser salvage catches some but not all). Adding this makes
+            # JSON output deterministic regardless of prompt length.
+            "response_format": {"type": "json_object"},
         }).encode("utf-8"),
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {ZAI_API_KEY}"},
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = json.loads(response.read().decode("utf-8"))
-            return str(payload["choices"][0]["message"]["content"]).strip()
+            content = str(payload["choices"][0]["message"]["content"]).strip()
+            finish = payload["choices"][0].get("finish_reason", "?")
+            print(f"LLM ok: {len(content)} chars finish={finish}", file=sys.stderr)
+            return content
     except Exception as exc:
         print(f"WARNING: chat completion failed: {type(exc).__name__}: {exc}", file=sys.stderr)
         return None
@@ -588,6 +639,7 @@ def build_chat_response(
         "status": "the survivor used radio lingo or requested status",
         "help": "the survivor is asking for practical help",
         "question": "the survivor asked a question",
+        "general": "the survivor sent a non-specific radio transmission",
     }
     player_info, arc_context = _identity_prompt_context(player_name, trusted_pz_identity)
     prompt = SIMON_CHAT_SYSTEM_PROMPT.format(
@@ -601,18 +653,37 @@ def build_chat_response(
         {"role": "user", "content": content or "(no transmission)"},
     ])
     if not raw:
+        print(f"LLM parse fail: empty raw response", file=sys.stderr)
         return None
     match = re.search(r"\{.*\}", raw, re.DOTALL)
     if not match:
-        return None
+        # Defensive fallback: if the model produced a "reply" key but the
+        # JSON was truncated before the closing brace, extract the string
+        # value directly rather than failing the whole reply.
+        salvage = re.search(r'"reply"\s*:\s*"((?:\\.|[^"\\])*)"', raw)
+        if not salvage:
+            print(f"LLM parse fail: no JSON object and no reply key. raw={raw[:160]!r}", file=sys.stderr)
+            return None
+        reply = salvage.group(1).strip()
+        return _guard_player_facing_reply(reply, supply_context) if reply else None
     try:
         payload = json.loads(match.group(0))
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
+        print(f"LLM parse fail: json decode error: {exc} raw={raw[:160]!r}", file=sys.stderr)
         return None
     if not isinstance(payload, dict):
+        print(f"LLM parse fail: payload not dict, type={type(payload).__name__}", file=sys.stderr)
         return None
     reply = str(payload.get("reply", "")).strip()
-    return _guard_player_facing_reply(reply, supply_context) if reply else None
+    if not reply:
+        keys = list(payload.keys())
+        print(f"LLM parse fail: no reply key, keys={keys}", file=sys.stderr)
+        return None
+    guarded = _guard_player_facing_reply(reply, supply_context)
+    if not guarded:
+        print(f"LLM parse fail: guard rejected reply, len={len(reply)}", file=sys.stderr)
+        return None
+    return guarded
 
 
 async def send_chat_response(channel, content: str, player_name: str, trigger: str, cooldown_key: str) -> bool:
@@ -680,7 +751,7 @@ async def main() -> None:
 
     @client.event
     async def on_ready():
-        print(f"=== SIMON Fast Listener ===\nConnected as {client.user}")
+        print(f"=== SIMON Radio Listener ===\nConnected as {client.user}")
         if simon_delivery:
             try:
                 simon_delivery.reset_presence()
@@ -708,15 +779,19 @@ async def main() -> None:
         is_chat = channel_id == chat_channel_id
         is_commands = channel_id == commands_channel_id
         is_log = channel_id == log_channel_id
+        print(f"[chat] on_message: ch={channel_id} chat={chat_channel_id} cmds={commands_channel_id} log={log_channel_id} author={message.author}({message.author.id}, bot={message.author.bot}) content={str(message.content or '')[:60]!r}", file=sys.stderr)
         if not (is_chat or is_commands or is_log):
+            print(f"[chat] DROP: not chat/commands/log channel", file=sys.stderr)
             return
 
         # Dedicated command/log surfaces are authoritative only when emitted by
         # the exact configured PZ relay account. Chat may also contain humans.
         if (is_commands or is_log) and not is_chat:
             if not message.author.bot or int(message.author.id) != PZ_RELAY_BOT_ID:
+                print(f"[chat] DROP: commands/log from non-relay bot author={message.author.id}", file=sys.stderr)
                 return
         elif is_chat and message.author.bot and int(message.author.id) != PZ_RELAY_BOT_ID:
+            print(f"[chat] DROP: chat from non-relay bot author={message.author.id}", file=sys.stderr)
             return
 
         # The Discord log channel is observation-only. Recognized lifecycle
@@ -738,6 +813,21 @@ async def main() -> None:
 
         if is_commands:
             content = str(message.content or "")
+            # Migration tolerance: until the PZ server's DiscordLogChannel is
+            # repointed at the dedicated log channel, the relay bot keeps
+            # posting lifecycle events into the commands channel. Parse them
+            # here too, so join/leave/death detection survives the split and
+            # nothing breaks if the log channel is set before the server-side
+            # change lands. Verified: the parser yields 0 events on 100 real
+            # commands-channel messages ("Players connected (0):", "Server
+            # connected", "players"), so command replies are never misread as
+            # log events. When log_channel_id == commands_channel_id the is_log
+            # branch above already handled the event, hence the `not is_log`
+            # guard against double handling.
+            if not is_log and simon_log_events:
+                event = simon_log_events.parse_log_event(content)
+                if event is not None:
+                    await handle_server_log_event(event)
             _merge_json_state(DISCORD_MESSAGE_STATE_FILE, {
                 "last_message_id": str(message.id),
                 "last_check_ts": int(time.time()),
@@ -779,13 +869,22 @@ async def main() -> None:
 
         should_respond, trigger = should_respond_to_chat(chat_text, cooldown_key)
         if should_respond and trigger:
-            channel = client.get_channel(chat_channel_id)
-            if channel:
-                _chat_inflight.add(cooldown_key)
-                try:
-                    await send_chat_response(channel, chat_text, effective_player, trigger, cooldown_key)
-                finally:
-                    _chat_inflight.discard(cooldown_key)
+            if not _cooldown_allows(cooldown_key):
+                _merge_json_state(DISCORD_MESSAGE_STATE_FILE, {
+                    "last_message_id": str(message.id),
+                    "last_check_ts": int(time.time()),
+                    "last_channel": "chat",
+                    "last_author": str(message.author.display_name),
+                    "last_trigger": f"{trigger}(cooldown)",
+                })
+            else:
+                channel = client.get_channel(chat_channel_id)
+                if channel:
+                    _chat_inflight.add(cooldown_key)
+                    try:
+                        await send_chat_response(channel, chat_text, effective_player, trigger, cooldown_key)
+                    finally:
+                        _chat_inflight.discard(cooldown_key)
 
         _merge_json_state(DISCORD_MESSAGE_STATE_FILE, {
             "last_message_id": str(message.id),

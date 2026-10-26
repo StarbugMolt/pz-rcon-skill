@@ -36,7 +36,16 @@ Current scheduled gates:
 - ambient: `scripts/simon_ambient_trigger.py`
 - greeting: `scripts/greeting_trigger.py`
 
-Both call `scripts/simon_online_gate.py` before returning `fire=true`. The direct chat listener independently calls the same gate immediately before its external chat-completion request.
+Both call `scripts/simon_online_gate.py` before returning `fire=true`.
+
+The direct chat listener does **not** re-probe the roster before its chat-completion request: an inbound relay message is itself proof that the survivor is online at that instant. The authoritative roster check stays on the scheduled paths, where there is no inbound message to anchor on.
+
+The gate itself is tiered and always fails closed:
+
+1. relay-staleness check on the listener state file (<1 s, no Discord call);
+2. persistent negative cache (20 min) for a server that stays down;
+3. short in-memory positive cache (20 s) so the cron trigger and a chat request in the same minute do not race into a false `baseline-read-failed`;
+4. the authoritative `Players connected (N)` probe, capped at 8 s per Discord call so it cannot tip the cron trigger's budget.
 
 The required deployment order is therefore:
 
@@ -99,8 +108,10 @@ The standalone listener is a separate process boundary. Credentials it directly 
 - uses the parsed PZ survivor identity rather than the shared Discord relay account;
 - sees only already-revealed active-arc context;
 - performs blocking model work off the Discord event loop;
-- performs an authoritative positive-player check before every direct-chat LLM request;
-- applies **no normal-chat cooldown**; only simultaneous duplicate replies are blocked;
+- treats an inbound relay message as presence proof on the direct-chat path (no second roster probe); the authoritative positive-player check stays on the scheduled paths;
+- applies a **20 s per-survivor reply cooldown** on the direct-chat path — the first transmission is always answered, only follow-ups inside the window are suppressed — on top of the simultaneous-duplicate in-flight guard;
+- pins the chat-completion contract (JSON `{"reply": ...}` output, thinking disabled, no stop sequences) and salvages a truncated JSON reply instead of dropping it;
+- while `PZ_DISCORD_LOG_CHANNEL_ID` is still unset, it also parses lifecycle lines in the commands channel, so login/logout/death detection survives the log/commands split;
 - never lets the fast model choose a mutation;
 - may call `simon_supply.py` for a verified occasional/test-mode item gift, which has its own separate cooldown/chance controls.
 
